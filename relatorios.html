@@ -6,8 +6,10 @@
     <meta name="robots" content="noindex">
     <meta name="theme-color" content="#1B3888">
     <!-- CSP: permite somente os CDNs usados por esta página (Tailwind, Font Awesome,
-         html2canvas/jsPDF e Google Fonts). O domínio do Worker em connect-src deve
-         ser trocado pelo endereço do SEU Worker (busque "EDITE AQUI (relatorios)"). -->
+         html2canvas/jsPDF e Google Fonts) e o SEU Worker em connect-src (troque o
+         endereço buscando "EDITE AQUI (relatorios)"). O arquivamento de PDF/fotos
+         no Google Drive é feito PELO Worker (rota /api/drive) — o navegador nunca
+         fala direto com o Google, e nada aqui precisa ser editado para o Drive. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://SEU-WORKER.workers.dev; base-uri 'none'; form-action 'none'">
     <title>Alupar Regional Nordeste — Gerador de Relatórios (NI & REL)</title>
     <!-- Tailwind CSS -->
@@ -248,6 +250,12 @@
                 <div id="cloud-status-badge" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                     <span id="cloud-status-text">Conectando ao banco…</span>
+                </div>
+
+                <!-- Google Drive Status Pill (arquivamento do PDF e das fotos) -->
+                <div id="drive-status-badge" onclick="testarDrive()" role="button" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-400 text-[11px] font-semibold cursor-pointer" title="Arquivamento do PDF e das fotos no Google Drive da equipe (clique para testar)">
+                    <i id="drive-status-icon" class="fa-brands fa-google-drive"></i>
+                    <span id="drive-status-text">Drive não configurado</span>
                 </div>
 
                 <!-- Next Available Numbers Pill -->
@@ -1103,8 +1111,12 @@
             const el = document.getElementById('repo-subtitle');
             if (!el) return;
             el.textContent = isCloudConnected
-                ? 'Numeração sequencial e documentos sincronizados no banco de dados de toda a equipe'
-                : 'Banco indisponível — gravações apenas neste navegador (as fotos ficam sempre no navegador que emitiu o documento)';
+                ? (driveConfigurado()
+                    ? 'Numeração sequencial e documentos sincronizados no banco; fotos e PDF arquivados no Google Drive da equipe'
+                    : 'Numeração sequencial e documentos sincronizados no banco de dados de toda a equipe')
+                : (driveConfigurado()
+                    ? 'Banco indisponível — gravações apenas neste navegador (fotos e PDF continuam indo para o Google Drive)'
+                    : 'Banco indisponível — gravações apenas neste navegador (as fotos ficam sempre no navegador que emitiu o documento)');
         }
 
         function ordenarPorAtualizacao(a, b) {
@@ -2358,6 +2370,188 @@
             return String(dados.texto).trim().replace(/^["']|["']$/g, '');
         }
 
+        // =========================================================================
+        // 8.1 GOOGLE DRIVE — ARQUIVAMENTO DO PDF E DAS FOTOS (via Worker)
+        // =========================================================================
+        // O PDF final e as fotos de cada documento são arquivados no Google Drive
+        // da equipe, e o banco (JSONBin) guarda apenas o mapa de IDs — assim
+        // qualquer usuário, em qualquer navegador, abre/edita o relatório com as
+        // imagens no lugar, sem estourar o limite do JSONBin.
+        //
+        // As chamadas passam PELA SUA INSTÂNCIA DO WORKER (rota /api/drive), que é
+        // quem guarda o token secreto do Apps Script. O navegador nunca fala
+        // direto com o Google e NÃO HÁ NADA PARA EDITAR NESTE ARQUIVO para
+        // habilitar o Drive: basta publicar o Web App do drive-apps-script.gs e
+        // criar as variáveis DRIVE_WEBAPP_URL e DRIVE_TOKEN no Cloudflare Worker
+        // (README-DEPLOY.md, Passo 5). O selo do topo mostra "Drive OK" quando
+        // está funcionando — clique nele para testar a qualquer momento.
+
+        function driveConfigurado() {
+            // A ponte com o Drive entra pela rota /api/drive do Worker:
+            // Worker configurado = Drive disponível.
+            return apiConfigurada();
+        }
+
+        // Chamada ao Worker, que encaminha a ação ao Web App do Apps Script.
+        async function driveChamar(corpo) {
+            const resp = await fetch(API_URL + '/api/drive', {
+                method: 'POST',
+                headers: cabecalhosAuth(),
+                body: JSON.stringify(corpo)
+            });
+            const dados = await resp.json().catch(() => ({}));
+            if (!resp.ok || !dados || dados.ok !== true) {
+                throw new Error((dados && dados.erro) || ('HTTP ' + resp.status));
+            }
+            return dados;
+        }
+
+        function definirStatusDrive(estado, detalhe) {
+            const badge = document.getElementById('drive-status-badge');
+            const txt = document.getElementById('drive-status-text');
+            const ico = document.getElementById('drive-status-icon');
+            if (!badge) return;
+            badge.title = detalhe || '';
+            const base = 'hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold cursor-pointer';
+            const visuais = {
+                off: 'bg-slate-50 border-slate-200 text-slate-400',
+                testando: 'bg-slate-50 border-slate-200 text-slate-500',
+                ok: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+                erro: 'bg-amber-50 border-amber-200 text-amber-800'
+            };
+            badge.className = `${base} ${visuais[estado] || visuais.off}`;
+            if (ico) ico.className = 'fa-brands fa-google-drive' + (estado === 'ok' ? ' text-emerald-600' : (estado === 'erro' ? ' text-amber-600' : ''));
+            if (txt) txt.textContent = detalhe;
+        }
+
+        async function testarDrive() {
+            if (!driveConfigurado()) { definirStatusDrive('off', 'Drive não configurado'); return; }
+            definirStatusDrive('testando', 'Testando Drive…');
+            try {
+                const r = await driveChamar({ acao: 'teste' });
+                definirStatusDrive('ok', 'Drive OK' + (r.pasta ? ' • ' + r.pasta : ''));
+            } catch (err) {
+                console.warn('Teste do Drive falhou:', err);
+                definirStatusDrive('erro', 'Drive indisponível');
+                const badgeErro = document.getElementById('drive-status-badge');
+                if (badgeErro) badgeErro.title = 'Erro ao testar o Drive: ' + (err && err.message ? err.message : 'desconhecido') + ' (veja o Passo 5 do README-DEPLOY.md)';
+            }
+        }
+        window.testarDrive = testarDrive;
+
+        function sanitizarNomeArquivo(nome) {
+            return String(nome || '').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim() || 'Sem nome';
+        }
+
+        // Pasta do documento no Drive: nomeada pelo código oficial (estável,
+        // mesmo que o título do documento mude depois).
+        function nomePastaDrive(doc) {
+            return sanitizarNomeArquivo(formatDocumentCode(doc.docType, doc.year, doc.seqNumber));
+        }
+
+        function nomeArquivoFoto(chave) {
+            return 'foto ' + sanitizarNomeArquivo(String(chave).replace(/\|/g, '_')) + '.jpg';
+        }
+
+        // Percorre todos os espaços de foto do documento chamando fn(chave, slot).
+        // chave: "resumo|<bloco>|<slot>" | "conclusao|<bloco>|<slot>" | "top|<tópico>|<bloco>|<slot>"
+        function cadaSlotDeFoto(doc, fn) {
+            if (!doc || typeof fn !== 'function') return;
+            const blocosDe = (blocos) => (Array.isArray(blocos) ? blocos : []);
+            blocosDe(doc.resumoBlocks).forEach((b) => blocosDe(b && b.slots).forEach((s, i) => fn('resumo|' + b.id + '|' + i, s)));
+            blocosDe(doc.conclusaoBlocks).forEach((b) => blocosDe(b && b.slots).forEach((s, i) => fn('conclusao|' + b.id + '|' + i, s)));
+            blocosDe(doc.extraTopics).forEach((t) => blocosDe(t && t.blocks).forEach((b) => blocosDe(b && b.slots).forEach((s, i) => fn('top|' + t.id + '|' + b.id + '|' + i, s))));
+        }
+
+        function mapaFotosDoDoc(doc) {
+            return (doc && doc.drive && doc.drive.fotos && typeof doc.drive.fotos === 'object') ? doc.drive.fotos : {};
+        }
+
+        // Resumo do arquivamento no Drive (usado nos selos do repositório)
+        function driveInfoDoDoc(rep) {
+            const d = rep && rep.drive;
+            if (!d) return '';
+            const nFotos = (d.fotos && typeof d.fotos === 'object') ? Object.keys(d.fotos).length : 0;
+            const temPdf = !!(d.pdf && d.pdf.id);
+            if (!nFotos && !temPdf) return '';
+            const partes = [];
+            if (nFotos) partes.push(nFotos + ' foto(s) arquivada(s) no Drive');
+            if (temPdf) partes.push('PDF arquivado no Drive');
+            return partes.join(' • ');
+        }
+
+        // Envia ao Drive as fotos novas/alteradas do documento. Retorna o mapa
+        // atualizado { fotos, enviadas, pasta } ou null se o Drive não estiver
+        // configurado. Fotos já arquivadas (mesmo tamanho) são ignoradas.
+        async function subirFotosAoDrive(doc, aoEnviar) {
+            if (!driveConfigurado() || !doc) return null;
+            const existente = mapaFotosDoDoc(doc);
+            const pendentes = [];
+            cadaSlotDeFoto(doc, (chave, slot) => {
+                if (!slot || !slot.imageUrl || String(slot.imageUrl).indexOf('data:image') !== 0) return;
+                const reg = existente[chave];
+                if (reg && reg.id && reg.h === String(slot.imageUrl).length) return; // já está no Drive e inalterada
+                pendentes.push({ chave, slot });
+            });
+            const pasta = nomePastaDrive(doc);
+            if (!pendentes.length) return { fotos: existente, enviadas: 0, pasta };
+            const fotos = Object.assign({}, existente);
+            let feitas = 0;
+            for (const item of pendentes) {
+                const base64 = String(item.slot.imageUrl).split(',')[1] || '';
+                const r = await driveChamar({ acao: 'salvarFoto', pasta, nome: nomeArquivoFoto(item.chave), base64 });
+                fotos[item.chave] = { id: r.id, h: String(item.slot.imageUrl).length };
+                feitas++;
+                if (typeof aoEnviar === 'function') aoEnviar(feitas, pendentes.length);
+            }
+            return { fotos, enviadas: feitas, pasta };
+        }
+
+        // Restaura, do Drive, as fotos que faltam neste navegador ao abrir/editar
+        // um documento (o banco guarda o mapa de IDs; o Drive guarda as imagens).
+        async function trazerFotosDoDrive(doc) {
+            if (!driveConfigurado() || !doc || !doc.id) return 0;
+            const mapa = mapaFotosDoDoc(doc);
+            const alvos = [];
+            cadaSlotDeFoto(doc, (chave, slot) => {
+                const reg = mapa[chave];
+                if (reg && reg.id && !(slot && slot.imageUrl)) alvos.push({ chave, slot, reg });
+            });
+            let baixadas = 0;
+            for (const item of alvos) {
+                try {
+                    const r = await driveChamar({ acao: 'lerFoto', id: item.reg.id });
+                    if (item.slot) item.slot.imageUrl = 'data:' + (r.mime || 'image/jpeg') + ';base64,' + r.base64;
+                    baixadas++;
+                } catch (err) {
+                    console.warn('Foto do Drive não carregou (' + item.chave + '):', err);
+                }
+            }
+            if (baixadas) {
+                // Espelha as fotos baixadas: reabrir este documento aqui fica instantâneo
+                const docEspelho = JSON.parse(JSON.stringify(doc));
+                const idx = lojaLocal.findIndex(d => d.id === doc.id);
+                if (idx >= 0) lojaLocal[idx] = docEspelho;
+                else lojaLocal.unshift(docEspelho);
+                salvarLojaLocal();
+                renderAllBlockEditors();
+                renderA4Document();
+                showToast(baixadas + ' foto(s) restaurada(s) do Google Drive.', 'success');
+            }
+            return baixadas;
+        }
+
+        // Arquiva o PDF final na pasta do documento no Drive
+        async function subirPdfAoDrive(base64Pdf) {
+            if (!driveConfigurado() || !base64Pdf) return null;
+            return await driveChamar({
+                acao: 'salvarPdf',
+                pasta: nomePastaDrive(currentReport),
+                nome: sanitizarNomeArquivo(getOfficialDocumentName(currentReport)) + '.pdf',
+                base64: base64Pdf
+            });
+        }
+
         function localEngineeringPolish(text, isTitle = false) {
             let clean = (text || '').trim().replace(/\s+/g, ' ');
             if (!clean) return clean;
@@ -3104,6 +3298,27 @@
                 // 1) Identificador estável do documento (mantido entre navegador e banco)
                 if (!currentReport.id) currentReport.id = gerarIdDocumento();
 
+                // 1.5) GOOGLE DRIVE — envia as fotos novas/alteradas para a pasta do
+                //      documento e anexa ao documento o mapa de IDs dos arquivos.
+                try {
+                    const resDrive = await subirFotosAoDrive(payload, (feitas, total) => {
+                        if (label) label.textContent = `Enviando foto ${feitas}/${total} ao Google Drive...`;
+                    });
+                    if (resDrive) {
+                        payload.drive = Object.assign({}, payload.drive || {}, {
+                            pasta: resDrive.pasta,
+                            fotos: resDrive.fotos,
+                            atualizadoEm: new Date().toISOString()
+                        });
+                        if (resDrive.enviadas > 0) {
+                            showToast(`${resDrive.enviadas} foto(s) arquivada(s) na pasta ${resDrive.pasta} do Google Drive.`, 'success');
+                        }
+                    }
+                } catch (errDrive) {
+                    console.warn('Drive indisponível; fotos permanecem apenas neste navegador:', errDrive);
+                    showToast('Não foi possível enviar as fotos ao Drive — elas continuam salvas neste navegador.', 'warning');
+                }
+
                 // 2) Gravação no BANCO DE DADOS da equipe (JSONBin via Worker)
                 let docOficialServidor = null;
                 if (isCloudConnected && apiConfigurada()) {
@@ -3250,6 +3465,7 @@
                             <h4 class="text-xs sm:text-sm font-bold text-slate-900 truncate">${escapeHtml(rep.title || 'Sem título')}</h4>
                             ${rep.author ? `<p class="text-[10px] text-slate-500">Elaborado por: <strong>${escapeHtml(rep.author)}</strong></p>` : ''}
                             ${(rep.editadoPor || rep.criadoPor) ? `<p class="text-[10px] text-slate-400">Gravado no banco por: ${escapeHtml(rep.editadoPor || rep.criadoPor || '')}</p>` : ''}
+                            ${driveInfoDoDoc(rep) ? `<p class="text-[10px] font-semibold text-emerald-700"><i class="fa-brands fa-google-drive"></i> ${escapeHtml(driveInfoDoDoc(rep))}</p>` : ''}
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
                             <button type="button" onclick="loadReportFromRepo('${rep.id}')" class="px-3 py-1.5 rounded-lg bg-[#1B3888] hover:bg-[#142864] text-white text-[11px] font-bold flex items-center gap-1.5 transition">
@@ -3293,6 +3509,11 @@
             switchEditorTab('dados');
             renderA4Document();
             updateEditingModeBanner();
+
+            // Fotos do Google Drive: preenche os espaços vazios a partir do mapa
+            // de IDs do documento (o navegador que emitiu já as tem localmente).
+            trazerFotosDoDrive(currentReport);
+
             closeRepositoryModal();
 
             const code = formatDocumentCode(currentReport.docType, currentReport.year, currentReport.seqNumber);
@@ -3539,6 +3760,33 @@
 
                 pdf.save(`${safeFilename}.pdf`);
                 showToast(`PDF "${safeFilename}.pdf" baixado com sucesso!`, 'success');
+
+                // Arquiva o PDF na pasta do documento no Google Drive (se configurado)
+                if (driveConfigurado()) {
+                    try {
+                        if (label) label.textContent = 'Arquivando PDF no Google Drive...';
+                        const dataUri = pdf.output('datauristring');
+                        const base64Pdf = dataUri.substring(dataUri.indexOf(',') + 1);
+                        const rPdf = await subirPdfAoDrive(base64Pdf);
+                        if (rPdf && rPdf.id) {
+                            currentReport.drive = Object.assign({}, currentReport.drive || {}, {
+                                pasta: nomePastaDrive(currentReport),
+                                pdf: { id: rPdf.id, url: rPdf.url || '', quando: new Date().toISOString() }
+                            });
+                            const idxEspelho = lojaLocal.findIndex(d => d.id === currentReport.id);
+                            if (idxEspelho >= 0) { lojaLocal[idxEspelho] = JSON.parse(JSON.stringify(currentReport)); salvarLojaLocal(); }
+                            showToast('PDF arquivado na pasta do documento no Google Drive.', 'success');
+                            if (isCloudConnected && apiConfigurada()) {
+                                try { await salvarNoBanco(currentReport); } catch (errMapa) { console.warn('Mapa do PDF não sincronizado ao banco:', errMapa); }
+                            }
+                            remontarRepositorio();
+                            renderRepositoryList();
+                        }
+                    } catch (errDrivePdf) {
+                        console.warn('PDF não pôde ser arquivado no Drive:', errDrivePdf);
+                        showToast('O PDF foi baixado, mas não foi possível arquivá-lo no Drive.', 'warning');
+                    }
+                }
             } catch (err) {
                 console.error('Erro ao gerar PDF:', err);
                 showToast('Falha ao gerar o arquivo PDF. Verifique as imagens e tente novamente.', 'error');
@@ -3622,6 +3870,7 @@
         updateEditingModeBanner();
         updateNextAvailableNumberUI();
         iniciarRepositorio();
+        testarDrive();
     </script>
 </body>
 </html>
