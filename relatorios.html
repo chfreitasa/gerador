@@ -10,7 +10,7 @@
          endereço buscando "EDITE AQUI (relatorios)"). O arquivamento de PDF/fotos
          no Google Drive é feito PELO Worker (rota /api/drive) — o navegador nunca
          fala direto com o Google, e nada aqui precisa ser editado para o Drive. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://SEU-WORKER.workers.dev; base-uri 'none'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://plataforma.nordeste.workers.dev; base-uri 'none'; form-action 'none'">
     <title>Alupar Regional Nordeste — Gerador de Relatórios (NI & REL)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -2352,7 +2352,7 @@
         // 8. AI TEXT ENHANCEMENT (via Worker seguro + fallback local)
         // =========================================================================
         /* >>> EDITE AQUI (relatorios): cole a MESMA URL do Worker usada no index.html <<< */
-        const API_URL = 'COLE_AQUI_A_URL_DO_SEU_WORKER'; // ex.: https://ferias-alupar.sua-conta.workers.dev
+        const API_URL = 'https://plataforma.nordeste.workers.dev'; // ex.: https://ferias-alupar.sua-conta.workers.dev
 
         async function callGeminiTextEnhancer(promptText) {
             // A chave do provedor de IA fica no servidor (Worker), nunca no site.
