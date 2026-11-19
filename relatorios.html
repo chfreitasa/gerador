@@ -12,6 +12,7 @@
          fala direto com o Google, e nada aqui precisa ser editado para o Drive. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://plataforma.nordeste.workers.dev; base-uri 'none'; form-action 'none'">
     <title>Alupar Regional Nordeste — Gerador de Relatórios (NI & REL)</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffffff' stroke='%23183482' stroke-width='4'/%3E%3Crect x='14' y='8' width='36' height='6' rx='3' fill='%232ea843'/%3E%3Ctext x='32' y='52' font-family='Segoe UI, Arial, sans-serif' font-size='44' font-weight='900' fill='%23183482' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome Icons -->
@@ -837,6 +838,10 @@
         });
 
         function getAluparLogoSVG(heightPx = 30) {
+            if (typeof driveCompanyLogos === 'object' && driveCompanyLogos['ALUPAR']) {
+                const maxW = Math.round(heightPx * 3.4);
+                return `<img src="${driveCompanyLogos['ALUPAR']}" alt="Alupar" style="display:block; height:${heightPx}px; width:auto; max-width:${maxW}px; object-fit:contain;">`;
+            }
             const widthPx = Math.round(heightPx * 3.05);
             return `
                 <svg viewBox="0 0 305 100" width="${widthPx}" height="${heightPx}" style="display:block; width:${widthPx}px; height:${heightPx}px;" xmlns="http://www.w3.org/2000/svg">
@@ -854,6 +859,9 @@
         function getCompanyLogoSVG(companyCode, widthPx = 195) {
             const code = (companyCode || 'ETB').toUpperCase();
             const heightPx = Math.round(widthPx * 1.18);
+            if (typeof driveCompanyLogos === 'object' && driveCompanyLogos[code]) {
+                return `<img src="${driveCompanyLogos[code]}" alt="${escapeHtml(code)}" style="display:block; margin:0 auto; width:${widthPx}px; max-height:${heightPx}px; object-fit:contain;">`;
+            }
             const uid = `${code}_${Math.random().toString(36).slice(2, 7)}`;
 
             if (code === 'ETAP') {
@@ -1052,6 +1060,11 @@
         const LS_REL_LOCAL = `${appId}_reports`;      // documentos emitidos/abertos NESTE navegador (com fotos)
         const LS_REL_SERVIDOR = `${appId}_servidor`;  // última lista recebida do banco (sem fotos)
         const LS_REL_CONTADORES = `${appId}_counters`;
+        const LS_REL_LOGOS = `${appId}_logos`;
+        let driveCompanyLogos = (() => {
+            try { return JSON.parse(localStorage.getItem(LS_REL_LOGOS) || '{}') || {}; }
+            catch (_) { return {}; }
+        })();
         let lojaLocal = [];      // espelho local completo (com fotos)
         let listaServidor = [];  // cópia em memória do que veio do banco
         let listaUsuariosSistema = []; // [{ login, label, role }] vindos do servidor
@@ -2541,12 +2554,28 @@
             if (txt) txt.textContent = detalhe;
         }
 
+        async function carregarLogosDoDrive() {
+            if (!driveConfigurado()) return;
+            try {
+                const r = await driveChamar({ acao: 'lerLogos' });
+                if (r && r.logos && typeof r.logos === 'object') {
+                    driveCompanyLogos = r.logos;
+                    try { localStorage.setItem(LS_REL_LOGOS, JSON.stringify(r.logos)); } catch (_) {}
+                    updateCompanyVisualIndicator();
+                    renderA4Document();
+                }
+            } catch (err) {
+                console.warn('Não foi possível carregar logos do Drive:', err);
+            }
+        }
+
         async function testarDrive() {
             if (!driveConfigurado()) { definirStatusDrive('off', 'Drive não configurado'); return; }
             definirStatusDrive('testando', 'Testando Drive…');
             try {
                 const r = await driveChamar({ acao: 'teste' });
                 definirStatusDrive('ok', 'Drive OK' + (r.pasta ? ' • ' + r.pasta : ''));
+                carregarLogosDoDrive();
             } catch (err) {
                 console.warn('Teste do Drive falhou:', err);
                 definirStatusDrive('erro', 'Drive indisponível');
