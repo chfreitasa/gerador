@@ -2585,7 +2585,8 @@
                 let improved = '';
                 try {
                     improved = await callGeminiTextEnhancer(prompt);
-                } catch (_) {
+                } catch (err) {
+                    console.warn('Erro IA (título):', err && err.message ? err.message : err);
                     improved = localEngineeringPolish(currentText, true);
                 }
 
@@ -2650,7 +2651,8 @@
                 let improved = '';
                 try {
                     improved = await callGeminiTextEnhancer(prompt);
-                } catch (_) {
+                } catch (err) {
+                    console.warn('Erro IA (bloco):', err && err.message ? err.message : err);
                     improved = localEngineeringPolish(blk.text, false);
                 }
 
