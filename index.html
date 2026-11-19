@@ -1708,6 +1708,7 @@ async function fazerLogin() {
             sessionStorage.setItem('etb_login', (perfil.login || u).toLowerCase());
             sessionStorage.setItem('etb_operador', perfil.label || u);
             sessionStorage.setItem('etb_role', perfil.role || 'user');
+            sessionStorage.setItem('etb_setor', perfil.setor || '');
             document.getElementById('loginPass').value = '';
             e.style.opacity = '0';
             location.hash = '#portal';
@@ -1742,6 +1743,7 @@ function fazerLogout() {
     sessionStorage.removeItem('etb_login');
     sessionStorage.removeItem('etb_operador');
     sessionStorage.removeItem('etb_role');
+    sessionStorage.removeItem('etb_setor');
     dbCache = { ferias: [], logs: [], usuarios: {}, solicitacoes: [] };
     dbCarregado = false;
     bloqueioTrocaSenhaAtivo = false;

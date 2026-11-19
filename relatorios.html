@@ -563,6 +563,17 @@
                                     <p id="os-format-hint" class="hidden text-[10px] text-rose-600 font-semibold mt-1">Use o padrão NNNN/AAAA (ex: 1116/2026)</p>
                                 </div>
                             </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Setor</label>
+                                <select id="input-sector" onchange="updateReportField('sector', this.value)" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 focus:border-blue-600 outline-none">
+                                    <option value="">Selecione o setor...</option>
+                                    <option value="TELECOM">Telecom</option>
+                                    <option value="SPCS">SPCS</option>
+                                    <option value="EAT">EAT</option>
+                                    <option value="OPERAÇÃO">Operação</option>
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Elaborador / Revisor (Nomes dos Técnicos / Engenheiros) -->
@@ -717,6 +728,13 @@
                 </select>
                 <select id="repo-author-filter" onchange="renderRepositoryList()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none max-w-[210px]">
                     <option value="ALL">Todos os Elaboradores</option>
+                </select>
+                <select id="repo-sector-filter" onchange="renderRepositoryList()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none">
+                    <option value="ALL">Todos os Setores</option>
+                    <option value="TELECOM">Telecom</option>
+                    <option value="SPCS">SPCS</option>
+                    <option value="EAT">EAT</option>
+                    <option value="OPERAÇÃO">Operação</option>
                 </select>
                 <button type="button" id="btn-sync-locais" onclick="sincronizarDocumentosLocais()" class="hidden px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition" title="Enviar ao banco os documentos salvos apenas neste navegador">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -968,6 +986,7 @@
                 revision: '00',
                 agentShort: 'ETB',
                 agentFull: 'Empresa de Transmissão Baiana S.A.',
+                sector: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('etb_setor')) || '',
                 ss: '',
                 os: '1116/2026',
                 substation: 'Ourolândia II - OUR',
@@ -1051,6 +1070,24 @@
         }
         function nomeOperadorLogado() {
             return sessionStorage.getItem('etb_operador') || 'Operador';
+        }
+        function normalizarSetorRel(s) {
+            const u = String(s || '').toUpperCase().trim();
+            if (u === 'OPERACAO') return 'OPERAÇÃO';
+            return u;
+        }
+        function setorUsuarioAtual() {
+            const direto = normalizarSetorRel(sessionStorage.getItem('etb_setor') || '');
+            if (direto) return direto;
+            const meuLogin = loginAtual();
+            const achado = listaUsuariosSistema.find(u => String(u.login || '').toLowerCase() === meuLogin);
+            return normalizarSetorRel(achado && achado.setor ? achado.setor : '');
+        }
+        function nomeSetorLegivel(s) {
+            const u = normalizarSetorRel(s);
+            if (u === 'TELECOM') return 'Telecom';
+            if (u === 'OPERAÇÃO') return 'Operação';
+            return u;
         }
         function podeEditarOuExcluirRelatorio(rep) {
             const papel = papelAtual();
@@ -1352,6 +1389,9 @@
             }
 
             remontarRepositorio();
+            if (!currentReport.id && !currentReport.sector) {
+                currentReport.sector = setorUsuarioAtual();
+            }
             if (!currentReport.id && !currentReport.manualSeqOverride) {
                 currentReport.seqNumber = getNextAvailableSeq(currentReport.docType, currentReport.year);
             }
@@ -1697,6 +1737,20 @@
             const osInput = document.getElementById('input-os');
             if (osInput) osInput.value = currentReport.os || '';
 
+            if (!currentReport.id && !currentReport.sector) {
+                currentReport.sector = setorUsuarioAtual();
+            }
+            const sectorSelect = document.getElementById('input-sector');
+            if (sectorSelect) {
+                const valSetor = normalizarSetorRel(currentReport.sector || '');
+                if (valSetor && !Array.from(sectorSelect.options).some(o => o.value === valSetor)) {
+                    const opt = document.createElement('option');
+                    opt.value = valSetor;
+                    opt.textContent = nomeSetorLegivel(valSetor);
+                    sectorSelect.appendChild(opt);
+                }
+                sectorSelect.value = valSetor;
+            }
             if (!currentReport.id) {
                 currentReport.author = nomeOperadorLogado();
             }
@@ -2910,8 +2964,17 @@
             const serialText = escapeHtml((currentReport.serialNumber || '').trim() || '-');
             const bayText = (currentReport.bayLocation || '').trim();
             const manufText = (currentReport.manufacturerModel || '').trim();
+            const sectorText = nomeSetorLegivel(currentReport.sector || '');
 
             const optionalRows = [];
+            if (sectorText) {
+                optionalRows.push(`
+                    <tr>
+                        <td class="doc-label">Setor:</td>
+                        <td class="doc-value" colspan="5">${escapeHtml(sectorText)}</td>
+                    </tr>
+                `);
+            }
             if (bayText) {
                 optionalRows.push(`
                     <tr>
@@ -3055,7 +3118,7 @@
 
             // Section 1: Informações Gerais
             const sec1HTML = buildSection1InfoGeraisHTML();
-            const extraRowsCount = ((currentReport.bayLocation || '').trim() ? 1 : 0) + ((currentReport.manufacturerModel || '').trim() ? 1 : 0);
+            const extraRowsCount = ((currentReport.sector || '').trim() ? 1 : 0) + ((currentReport.bayLocation || '').trim() ? 1 : 0) + ((currentReport.manufacturerModel || '').trim() ? 1 : 0);
             const sec1Units = 165 + extraRowsCount * 28;
             currentPageElements.push(sec1HTML);
             currentUnits += sec1Units;
@@ -3307,6 +3370,7 @@
             fresh.manufacturerModel = '';
             fresh.serialNumber = '';
             fresh.author = nomeOperadorLogado();
+            fresh.sector = setorUsuarioAtual();
             fresh.reviewer = '';
             fresh.resumoBlocks = [
                 {
@@ -3350,6 +3414,9 @@
             if (currentReport.id && !podeEditarOuExcluirRelatorio(currentReport)) {
                 showToast('Permissão negada: apenas administradores ou quem elaborou pode editar este relatório.', 'error');
                 return;
+            }
+            if (!currentReport.id && !currentReport.sector) {
+                currentReport.sector = setorUsuarioAtual();
             }
             if (!currentReport.id) {
                 currentReport.author = nomeOperadorLogado();
@@ -3521,10 +3588,14 @@
             const query = (document.getElementById('repo-search-input')?.value || '').trim().toLowerCase();
             const typeFilter = document.getElementById('repo-type-filter')?.value || 'ALL';
             const authorFilter = document.getElementById('repo-author-filter')?.value || 'ALL';
+            const sectorFilter = document.getElementById('repo-sector-filter')?.value || 'ALL';
 
             const filtered = repositoryReports.filter((rep) => {
                 const repType = rep.docType === 'REL' ? 'REL' : 'NI';
                 if (typeFilter !== 'ALL' && repType !== typeFilter) return false;
+                if (sectorFilter !== 'ALL') {
+                    if (normalizarSetorRel(rep.sector || '') !== normalizarSetorRel(sectorFilter)) return false;
+                }
                 if (authorFilter !== 'ALL') {
                     if (authorFilter.startsWith('login:')) {
                         const alvoLogin = authorFilter.slice(6);
@@ -3542,6 +3613,7 @@
                     (rep.title || '').toLowerCase().includes(query) ||
                     (rep.substation || '').toLowerCase().includes(query) ||
                     (rep.agentShort || '').toLowerCase().includes(query) ||
+                    (rep.sector || '').toLowerCase().includes(query) ||
                     (rep.author || '').toLowerCase().includes(query) ||
                     (rep.criadoPor || '').toLowerCase().includes(query)
                 );
@@ -3572,6 +3644,7 @@
                             <div class="flex flex-wrap items-center gap-2">
                                 <span class="px-2.5 py-0.5 rounded-md text-xs font-extrabold border ${badgeStyle}">${code}</span>
                                 <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold">${escapeHtml(rep.agentShort || 'ETB')}</span>
+                                ${rep.sector ? `<span class="px-2 py-0.5 rounded bg-blue-50 text-alupar-navy border border-blue-200 text-[10px] font-bold">${escapeHtml(nomeSetorLegivel(rep.sector))}</span>` : ''}
                                 <span class="text-[11px] font-semibold text-slate-500">${escapeHtml(rep.substation || '')}</span>
                                 <span class="text-[11px] text-slate-400">• ${escapeHtml(formatDateBR(rep.date))}</span>
                                 ${rep.somenteLocal ? '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold">Neste navegador (não sincronizado)</span>' : ''}
