@@ -2658,15 +2658,56 @@
             return baixadas;
         }
 
-        // Arquiva o PDF final na pasta do documento no Drive
-        async function subirPdfAoDrive(base64Pdf) {
+        function revisaoAtualDoc(doc = currentReport) {
+            return sanitizarNomeArquivo(String((doc && doc.revision) || '00').trim() || '00');
+        }
+
+        function nomeArquivoPdfDrive(doc = currentReport) {
+            return sanitizarNomeArquivo(getOfficialDocumentName(doc)) + ' - Rev ' + revisaoAtualDoc(doc) + '.pdf';
+        }
+
+        function idPdfAnteriorDaRevisao(doc = currentReport) {
+            const rev = revisaoAtualDoc(doc);
+            const d = doc && doc.drive;
+            if (!d) return '';
+            if (d.pdfs && typeof d.pdfs === 'object' && d.pdfs[rev] && d.pdfs[rev].id) {
+                return String(d.pdfs[rev].id);
+            }
+            if (rev === '00' && d.pdf && d.pdf.id && !(d.pdfs && Object.keys(d.pdfs).length)) {
+                return String(d.pdf.id);
+            }
+            return '';
+        }
+
+        function registrarPdfNoDocDrive(doc, rPdf) {
+            if (!doc || !rPdf || !rPdf.id) return;
+            const rev = rPdf.rev || revisaoAtualDoc(doc);
+            const atual = (doc.drive && typeof doc.drive === 'object') ? doc.drive : {};
+            const pdfs = Object.assign({}, atual.pdfs || {});
+            const info = { id: rPdf.id, url: rPdf.url || '', quando: new Date().toISOString() };
+            pdfs[rev] = info;
+            doc.drive = Object.assign({}, atual, {
+                pasta: nomePastaDrive(doc),
+                pdf: info,
+                pdfs,
+                atualizadoEm: info.quando
+            });
+        }
+
+        // Arquiva o PDF final na pasta do documento no Drive:
+        // sobrescreve o PDF da MESMA revisão; cria novo arquivo se for revisão nova.
+        async function subirPdfAoDrive(base64Pdf, doc = currentReport) {
             if (!driveConfigurado() || !base64Pdf) return null;
-            return await driveChamar({
+            const rev = revisaoAtualDoc(doc);
+            const substituirId = idPdfAnteriorDaRevisao(doc);
+            const r = await driveChamar({
                 acao: 'salvarPdf',
-                pasta: nomePastaDrive(currentReport),
-                nome: sanitizarNomeArquivo(getOfficialDocumentName(currentReport)) + '.pdf',
+                pasta: nomePastaDrive(doc),
+                nome: nomeArquivoPdfDrive(doc),
+                substituirId,
                 base64: base64Pdf
             });
+            return Object.assign({}, r, { rev });
         }
 
         function localEngineeringPolish(text, isTitle = false) {
@@ -3464,9 +3505,26 @@
                             showToast(`${resDrive.enviadas} foto(s) arquivada(s) na pasta ${resDrive.pasta} do Google Drive.`, 'success');
                         }
                     }
+                    if (driveConfigurado() && window.html2canvas && window.jspdf?.jsPDF) {
+                        if (label) label.textContent = 'Gerando PDF para o Google Drive...';
+                        const { base64Pdf } = await gerarPdfDocumento({ scale: 2.2 });
+                        const rev = revisaoAtualDoc(payload);
+                        const eraSubstituicao = !!idPdfAnteriorDaRevisao(payload);
+                        if (label) label.textContent = 'Arquivando PDF no Google Drive...';
+                        const rPdf = await subirPdfAoDrive(base64Pdf, payload);
+                        if (rPdf && rPdf.id) {
+                            registrarPdfNoDocDrive(payload, rPdf);
+                            showToast(
+                                eraSubstituicao
+                                    ? `PDF Rev ${rev} atualizado no Google Drive.`
+                                    : `Nova revisão (Rev ${rev}) gerada no Google Drive.`,
+                                'success'
+                            );
+                        }
+                    }
                 } catch (errDrive) {
-                    console.warn('Drive indisponível; fotos permanecem apenas neste navegador:', errDrive);
-                    showToast('Não foi possível enviar as fotos ao Drive — elas continuam salvas neste navegador.', 'warning');
+                    console.warn('Drive indisponível; arquivos permanecem apenas neste navegador:', errDrive);
+                    showToast('Não foi possível arquivar no Drive — os dados continuam salvos neste navegador.', 'warning');
                 }
 
                 // 2) Gravação no BANCO DE DADOS da equipe (JSONBin via Worker)
@@ -3873,34 +3931,21 @@
             };
         }
 
-        window.exportDocumentToPDF = async function () {
+        async function gerarPdfDocumento({ scale = 3.5, onProgress = null } = {}) {
             const pagesContainer = document.getElementById('a4-pages-container');
-            if (!pagesContainer) return;
-
+            if (!pagesContainer) throw new Error('Container A4 não encontrado.');
             if (!window.html2canvas || !window.jspdf?.jsPDF) {
-                showToast('Bibliotecas de PDF ainda carregando. Aguarde um instante e tente novamente.', 'warning');
-                return;
+                throw new Error('Bibliotecas de PDF ainda carregando.');
             }
-
-            const btn = document.getElementById('btn-export-pdf');
-            const icon = document.getElementById('btn-export-pdf-icon');
-            const label = document.getElementById('btn-export-pdf-label');
-
-            if (btn) btn.disabled = true;
-            if (icon) icon.className = 'fa-solid fa-spinner fa-spin text-amber-300';
-            if (label) label.textContent = 'Gerando PDF Alta Definição...';
 
             const prevTransform = pagesContainer.style.transform;
             const prevMarginBottom = pagesContainer.style.marginBottom;
             let restoreSVGs = null;
+            const handles = Array.from(pagesContainer.querySelectorAll('.inspection-box-handle'));
 
             try {
-                // Temporarily reset zoom transform to 1:1 for razor-sharp A4 capture
                 pagesContainer.style.transform = 'scale(1)';
                 pagesContainer.style.marginBottom = '0px';
-
-                // Hide inspection resize handles during capture
-                const handles = Array.from(pagesContainer.querySelectorAll('.inspection-box-handle'));
                 handles.forEach((h) => { h.style.display = 'none'; });
 
                 restoreSVGs = await rasterizeInlineSVGsForExport(pagesContainer);
@@ -3915,9 +3960,9 @@
                 });
 
                 for (let i = 0; i < sheets.length; i++) {
-                    if (label) label.textContent = `Renderizando Pág. ${i + 1}/${sheets.length}...`;
+                    if (typeof onProgress === 'function') onProgress(i + 1, sheets.length);
                     const canvas = await window.html2canvas(sheets[i], {
-                        scale: 3.5,
+                        scale,
                         useCORS: true,
                         allowTaint: true,
                         backgroundColor: '#ffffff',
@@ -3929,13 +3974,40 @@
                     pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST');
                 }
 
+                const dataUri = pdf.output('datauristring');
+                const base64Pdf = dataUri.substring(dataUri.indexOf(',') + 1);
+                return { pdf, base64Pdf };
+            } finally {
+                if (typeof restoreSVGs === 'function') restoreSVGs();
                 handles.forEach((h) => { h.style.display = ''; });
+                pagesContainer.style.transform = prevTransform;
+                pagesContainer.style.marginBottom = prevMarginBottom;
+            }
+        }
 
-                const safeFilename = getOfficialDocumentName(currentReport)
-                    .replace(/[\\/:*?"<>|]/g, '-')
-                    .replace(/\s+/g, ' ')
-                    .trim();
+        window.exportDocumentToPDF = async function () {
+            if (!window.html2canvas || !window.jspdf?.jsPDF) {
+                showToast('Bibliotecas de PDF ainda carregando. Aguarde um instante e tente novamente.', 'warning');
+                return;
+            }
 
+            const btn = document.getElementById('btn-export-pdf');
+            const icon = document.getElementById('btn-export-pdf-icon');
+            const label = document.getElementById('btn-export-pdf-label');
+
+            if (btn) btn.disabled = true;
+            if (icon) icon.className = 'fa-solid fa-spinner fa-spin text-amber-300';
+            if (label) label.textContent = 'Gerando PDF Alta Definição...';
+
+            try {
+                const { pdf, base64Pdf } = await gerarPdfDocumento({
+                    scale: 3.5,
+                    onProgress: (atual, total) => {
+                        if (label) label.textContent = `Renderizando Pág. ${atual}/${total}...`;
+                    }
+                });
+
+                const safeFilename = nomeArquivoPdfDrive(currentReport).replace(/\.pdf$/i, '');
                 pdf.save(`${safeFilename}.pdf`);
                 showToast(`PDF "${safeFilename}.pdf" baixado com sucesso!`, 'success');
 
@@ -3943,17 +4015,12 @@
                 if (driveConfigurado()) {
                     try {
                         if (label) label.textContent = 'Arquivando PDF no Google Drive...';
-                        const dataUri = pdf.output('datauristring');
-                        const base64Pdf = dataUri.substring(dataUri.indexOf(',') + 1);
-                        const rPdf = await subirPdfAoDrive(base64Pdf);
+                        const rPdf = await subirPdfAoDrive(base64Pdf, currentReport);
                         if (rPdf && rPdf.id) {
-                            currentReport.drive = Object.assign({}, currentReport.drive || {}, {
-                                pasta: nomePastaDrive(currentReport),
-                                pdf: { id: rPdf.id, url: rPdf.url || '', quando: new Date().toISOString() }
-                            });
+                            registrarPdfNoDocDrive(currentReport, rPdf);
                             const idxEspelho = lojaLocal.findIndex(d => d.id === currentReport.id);
                             if (idxEspelho >= 0) { lojaLocal[idxEspelho] = JSON.parse(JSON.stringify(currentReport)); salvarLojaLocal(); }
-                            showToast('PDF arquivado na pasta do documento no Google Drive.', 'success');
+                            showToast(`PDF (Rev ${rPdf.rev}) arquivado na pasta do documento no Google Drive.`, 'success');
                             if (isCloudConnected && apiConfigurada()) {
                                 try { await salvarNoBanco(currentReport); } catch (errMapa) { console.warn('Mapa do PDF não sincronizado ao banco:', errMapa); }
                             }
@@ -3969,9 +4036,6 @@
                 console.error('Erro ao gerar PDF:', err);
                 showToast('Falha ao gerar o arquivo PDF. Verifique as imagens e tente novamente.', 'error');
             } finally {
-                if (typeof restoreSVGs === 'function') restoreSVGs();
-                pagesContainer.style.transform = prevTransform;
-                pagesContainer.style.marginBottom = prevMarginBottom;
                 if (btn) btn.disabled = false;
                 if (icon) icon.className = 'fa-solid fa-file-pdf text-rose-300';
                 if (label) label.textContent = 'Gerar PDF';
