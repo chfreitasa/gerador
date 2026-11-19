@@ -11,7 +11,7 @@
          no Google Drive é feito PELO Worker (rota /api/drive) — o navegador nunca
          fala direto com o Google, e nada aqui precisa ser editado para o Drive. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob:; connect-src 'self' https://plataforma.nordeste.workers.dev; base-uri 'none'; form-action 'none'">
-    <title>Alupar Regional Nordeste — Gerador de Relatórios (NI & REL)</title>
+    <title>Alupar Regional Nordeste — Gerador de Relatórios</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23ffffff' stroke='%23183482' stroke-width='4'/%3E%3Crect x='14' y='8' width='36' height='6' rx='3' fill='%232ea843'/%3E%3Ctext x='32' y='52' font-family='Segoe UI, Arial, sans-serif' font-size='44' font-weight='900' fill='%23183482' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -2570,6 +2570,10 @@
             return sanitizarNomeArquivo(formatDocumentCode(doc.docType, doc.year, doc.seqNumber));
         }
 
+        function categoriaPastaDrive(doc) {
+            return (doc && doc.docType === 'REL') ? 'Relatório' : 'NI';
+        }
+
         function nomeArquivoFoto(chave) {
             return 'foto ' + sanitizarNomeArquivo(String(chave).replace(/\|/g, '_')) + '.jpg';
         }
@@ -2615,12 +2619,13 @@
                 pendentes.push({ chave, slot });
             });
             const pasta = nomePastaDrive(doc);
+            const categoria = categoriaPastaDrive(doc);
             if (!pendentes.length) return { fotos: existente, enviadas: 0, pasta };
             const fotos = Object.assign({}, existente);
             let feitas = 0;
             for (const item of pendentes) {
                 const base64 = String(item.slot.imageUrl).split(',')[1] || '';
-                const r = await driveChamar({ acao: 'salvarFoto', pasta, nome: nomeArquivoFoto(item.chave), base64 });
+                const r = await driveChamar({ acao: 'salvarFoto', categoria, pasta, nome: nomeArquivoFoto(item.chave), base64 });
                 fotos[item.chave] = { id: r.id, h: String(item.slot.imageUrl).length };
                 feitas++;
                 if (typeof aoEnviar === 'function') aoEnviar(feitas, pendentes.length);
@@ -2708,6 +2713,7 @@
             const substituirId = idPdfAnteriorDaRevisao(doc);
             const r = await driveChamar({
                 acao: 'salvarPdf',
+                categoria: categoriaPastaDrive(doc),
                 pasta: nomePastaDrive(doc),
                 nome: nomeArquivoPdfDrive(doc),
                 substituirId,
