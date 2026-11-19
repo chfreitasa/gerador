@@ -3164,9 +3164,8 @@ async function aplicarLogoAluparDrive() {
     const aplicarSrc = (src) => {
         if (!src || String(src).indexOf('data:image/') !== 0) return false;
         document.querySelectorAll('.alupar-logo').forEach((el) => {
-            el.style.background = '#ffffff';
-            el.style.padding = '5px 14px';
-            el.style.borderRadius = '10px';
+            el.style.background = 'transparent';
+            el.style.padding = '0';
             el.style.display = 'inline-flex';
             el.style.alignItems = 'center';
             el.style.justifyContent = 'center';
@@ -3174,9 +3173,9 @@ async function aplicarLogoAluparDrive() {
             const img = document.createElement('img');
             img.src = src;
             img.alt = 'Alupar';
-            img.style.height = '34px';
+            img.style.height = '40px';
             img.style.width = 'auto';
-            img.style.maxWidth = '150px';
+            img.style.maxWidth = '170px';
             img.style.objectFit = 'contain';
             img.style.display = 'block';
             el.appendChild(img);
@@ -3186,7 +3185,7 @@ async function aplicarLogoAluparDrive() {
 
     try {
         const cache = JSON.parse(localStorage.getItem('alupar-ne-relatorios_logos') || '{}');
-        if (cache && aplicarSrc(cache.ALUPAR)) return;
+        if (cache && aplicarSrc(cache.ALUPAR_BRANCA || cache.ALUPAR)) return;
     } catch (_) {}
 
     if (_aluparLogoBuscada || !isLoggedIn() || !configOk()) return;
@@ -3195,7 +3194,7 @@ async function aplicarLogoAluparDrive() {
         const r = await apiFetch('/api/drive', { metodo: 'POST', corpo: { acao: 'lerLogos' } });
         if (r && r.ok && r.dados && r.dados.ok && r.dados.logos) {
             try { localStorage.setItem('alupar-ne-relatorios_logos', JSON.stringify(r.dados.logos)); } catch (_) {}
-            aplicarSrc(r.dados.logos.ALUPAR);
+            aplicarSrc(r.dados.logos.ALUPAR_BRANCA || r.dados.logos.ALUPAR);
         }
     } catch (_) {}
 }
