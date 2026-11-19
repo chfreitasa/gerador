@@ -218,18 +218,10 @@
                         <path d="M260 37 H272 V45 C275 39 280 36 287 36 C289 36 291 36 292 37 V49 C290 48 288 48 285 48 C277 48 273 53 273 62 V82 H260 Z" fill="#FFFFFF"/>
                     </svg>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="text-sm sm:text-base font-extrabold text-white tracking-tight">
-                            Gerador de Relatórios (NI &amp; REL)
-                        </h1>
-                        <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-white border border-white/25">
-                            Regional Nordeste
-                        </span>
-                    </div>
-                    <p class="text-[11px] text-blue-100 hidden sm:block">
-                        Emissão padronizada de Notas Informativas (<strong class="text-white">OM.NI</strong>) e Relatórios Técnicos (<strong class="text-white">OM.REL</strong>)
-                    </p>
+                <div class="flex items-center">
+                    <h1 class="text-sm sm:text-base font-extrabold text-white tracking-tight">
+                        Gerador de Relatórios
+                    </h1>
                 </div>
             </div>
 
@@ -978,56 +970,33 @@
         // 2. DOCUMENT MODEL, DEFAULT TEMPLATE & APPLICATION STATE
         // =========================================================================
         function createDefaultTemplate() {
+            const hoje = new Date();
             return {
                 id: null,
                 docType: 'NI', // 'NI' (OM.NI.26001) ou 'REL' (OM.REL.26001)
-                year: 2026,
+                year: hoje.getFullYear(),
                 seqNumber: 1,
                 manualSeqOverride: false,
-                date: '2026-04-20',
+                date: hoje.toISOString().slice(0, 10),
                 revision: '00',
                 agentShort: 'ETB',
                 agentFull: 'Empresa de Transmissão Baiana S.A.',
                 sector: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('etb_setor')) || '',
                 ss: '',
-                os: '1116/2026',
+                os: '',
                 substation: 'Ourolândia II - OUR',
-                equipment: 'Conversores óticos painéis CFTV',
+                equipment: '',
                 bayLocation: '',
                 manufacturerModel: '',
                 serialNumber: '',
-                title: 'Falha nas fontes de alimentação dos conversores óticos dos painéis CFTV.',
+                title: '',
                 author: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('etb_operador')) || 'Operador',
                 reviewer: '',
                 resumoBlocks: [
                     {
                         id: 'blk_res_1',
                         type: 'paragraph',
-                        text: 'Durante inspeção de rotina no sistema de CFTV da Subestação Ourolândia II (OUR), identificou-se que câmeras do pátio apresentavam perda de comunicação com o NVR da sala de comando. Após verificação nos painéis de campo, constatou-se falha nas fontes de alimentação dos conversores óticos responsáveis pela conversão do sinal elétrico em ótico.',
-                        prevText: ''
-                    },
-                    {
-                        id: 'blk_res_2',
-                        type: 'photo-single',
-                        sizePreset: 'standard',
-                        fitMode: 'contain',
-                        slots: [
-                            {
-                                imageUrl: '',
-                                caption: 'Fonte de alimentação defeituosa no painel CFTV — SE Ourolândia II',
-                                box: { active: true, x: 56, y: 26, w: 30, h: 14 }
-                            },
-                            {
-                                imageUrl: '',
-                                caption: 'Detalhe complementar do equipamento',
-                                box: { active: false, x: 25, y: 25, w: 35, h: 25 }
-                            }
-                        ]
-                    },
-                    {
-                        id: 'blk_res_3',
-                        type: 'paragraph',
-                        text: 'As fontes instaladas operam com entrada bivolt automática (110–240 Vac), saída 5 Vdc / 2 A e conector P4 macho (5,5 × 2,1 mm), apresentando desgaste recorrente em função da temperatura interna dos cubículos de pátio.',
+                        text: '',
                         prevText: ''
                     }
                 ],
@@ -1036,7 +1005,7 @@
                     {
                         id: 'blk_conc_1',
                         type: 'paragraph',
-                        text: 'Para restabelecimento integral do monitoramento por CFTV, recomenda-se a substituição imediata das fontes defeituosas por unidades industriais equivalentes de alta confiabilidade térmica, bem como a manutenção de estoque mínimo de peças sobressalentes nas subestações da Regional Nordeste.',
+                        text: '',
                         prevText: ''
                     }
                 ]
