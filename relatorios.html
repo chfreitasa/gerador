@@ -202,33 +202,33 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen lg:h-screen lg:overflow-hidden flex flex-col">
 
-    <!-- Top Application Bar -->
-    <header class="no-print shrink-0 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <!-- Top Application Bar (Identidade Visual Alupar igual ao Portal/Férias) -->
+    <header class="no-print shrink-0 bg-[#183482] border-b-4 border-[#2ea843] text-white sticky top-0 z-30 shadow-md">
         <div class="max-w-[1680px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-3">
             <!-- Brand & Title -->
             <div class="flex items-center gap-3">
-                <div id="topbar-alupar-logo" class="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center">
-                    <svg viewBox="0 0 305 100" class="h-7 w-auto" xmlns="http://www.w3.org/2000/svg" aria-label="Alupar">
-                        <path d="M8 82 L31 18 H46 L69 82 H54 L49 67 H28 L23 82 Z M32 55 H45 L38.5 34 Z" fill="#274C9C"/>
-                        <rect x="74" y="18" width="13" height="64" rx="2" fill="#274C9C"/>
-                        <rect x="94" y="18" width="198" height="12" rx="2" fill="#009E0F"/>
-                        <path d="M94 37 H107 V62 C107 68 110 71 116 71 C122 71 126 67 126 60 V37 H139 V82 H127 V75 C123 80 117 83 110 83 C99 83 94 76 94 64 Z" fill="#274C9C"/>
-                        <path d="M148 37 H160 V43 C164 38 170 36 177 36 C190 36 199 46 199 60 C199 74 190 83 177 83 C170 83 165 80 161 76 V96 H148 Z M173 72 C181 72 186 67 186 60 C186 52 181 47 173 47 C166 47 161 52 161 60 C161 67 166 72 173 72 Z" fill="#274C9C"/>
-                        <path d="M208 42 C214 38 222 36 230 36 C244 36 251 43 251 55 V82 H239 V76 C235 81 229 83 222 83 C211 83 204 77 204 68 C204 58 212 53 227 53 H238 V52 C238 47 234 45 227 45 C221 45 215 47 211 50 Z M238 61 H228 C220 61 217 63 217 67 C217 71 220 73 225 73 C233 73 238 69 238 63 Z" fill="#274C9C"/>
-                        <path d="M260 37 H272 V45 C275 39 280 36 287 36 C289 36 291 36 292 37 V49 C290 48 288 48 285 48 C277 48 273 53 273 62 V82 H260 Z" fill="#274C9C"/>
+                <div id="topbar-alupar-logo" class="flex items-center justify-center">
+                    <svg viewBox="0 0 305 100" class="h-8 w-auto" xmlns="http://www.w3.org/2000/svg" aria-label="Alupar">
+                        <path d="M8 82 L31 18 H46 L69 82 H54 L49 67 H28 L23 82 Z M32 55 H45 L38.5 34 Z" fill="#FFFFFF"/>
+                        <rect x="74" y="18" width="13" height="64" rx="2" fill="#FFFFFF"/>
+                        <rect x="94" y="18" width="198" height="12" rx="2" fill="#2ea843"/>
+                        <path d="M94 37 H107 V62 C107 68 110 71 116 71 C122 71 126 67 126 60 V37 H139 V82 H127 V75 C123 80 117 83 110 83 C99 83 94 76 94 64 Z" fill="#FFFFFF"/>
+                        <path d="M148 37 H160 V43 C164 38 170 36 177 36 C190 36 199 46 199 60 C199 74 190 83 177 83 C170 83 165 80 161 76 V96 H148 Z M173 72 C181 72 186 67 186 60 C186 52 181 47 173 47 C166 47 161 52 161 60 C161 67 166 72 173 72 Z" fill="#FFFFFF"/>
+                        <path d="M208 42 C214 38 222 36 230 36 C244 36 251 43 251 55 V82 H239 V76 C235 81 229 83 222 83 C211 83 204 77 204 68 C204 58 212 53 227 53 H238 V52 C238 47 234 45 227 45 C221 45 215 47 211 50 Z M238 61 H228 C220 61 217 63 217 67 C217 71 220 73 225 73 C233 73 238 69 238 63 Z" fill="#FFFFFF"/>
+                        <path d="M260 37 H272 V45 C275 39 280 36 287 36 C289 36 291 36 292 37 V49 C290 48 288 48 285 48 C277 48 273 53 273 62 V82 H260 Z" fill="#FFFFFF"/>
                     </svg>
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h1 class="text-sm sm:text-base font-extrabold text-alupar-navy tracking-tight">
+                        <h1 class="text-sm sm:text-base font-extrabold text-white tracking-tight">
                             Gerador de Relatórios (NI &amp; REL)
                         </h1>
-                        <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#DCE6F7] text-alupar-navy border border-blue-200">
+                        <span class="hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/15 text-white border border-white/25">
                             Regional Nordeste
                         </span>
                     </div>
-                    <p class="text-[11px] text-slate-500 hidden sm:block">
-                        Emissão padronizada de Notas Informativas (<strong class="text-slate-700">OM.NI</strong>) e Relatórios Técnicos (<strong class="text-slate-700">OM.REL</strong>)
+                    <p class="text-[11px] text-blue-100 hidden sm:block">
+                        Emissão padronizada de Notas Informativas (<strong class="text-white">OM.NI</strong>) e Relatórios Técnicos (<strong class="text-white">OM.REL</strong>)
                     </p>
                 </div>
             </div>
@@ -236,14 +236,14 @@
             <!-- Center/Right Controls -->
             <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 <!-- Voltar ao Portal de Módulos -->
-                <button type="button" onclick="voltarAoPortal()" class="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-alupar-navy border border-slate-300 text-xs font-bold flex items-center gap-2 shadow-xs transition" title="Voltar ao portal de módulos">
-                    <i class="fa-solid fa-arrow-left text-alupar-blue"></i>
+                <button type="button" onclick="voltarAoPortal()" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/25 text-xs font-bold flex items-center gap-2 shadow-xs transition" title="Voltar ao portal de módulos">
+                    <i class="fa-solid fa-arrow-left text-blue-200"></i>
                     <span>Portal</span>
                 </button>
 
                 <!-- Operador autenticado -->
-                <div id="rel-user-pill" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] font-bold text-slate-700 max-w-[220px]" title="Sessão autenticada">
-                    <i class="fa-solid fa-user-shield text-[#1B3888]"></i>
+                <div id="rel-user-pill" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 border border-white/20 text-[11px] font-bold text-white max-w-[220px]" title="Sessão autenticada">
+                    <i class="fa-solid fa-user-shield text-emerald-300"></i>
                     <span class="truncate">…</span>
                 </div>
 
@@ -260,21 +260,21 @@
                 </div>
 
                 <!-- Next Available Numbers Pill -->
-                <div id="next-ni-indicator" class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-[11px] text-slate-700">
+                <div id="next-ni-indicator" class="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/95 border border-white/40 text-[11px] text-slate-700">
                     <i class="fa-solid fa-hashtag text-alupar-blue"></i>
                     <span>Próximos: <strong class="text-alupar-navy">OM.NI.26001</strong> • <strong class="text-emerald-700">OM.REL.26001</strong></span>
                 </div>
 
                 <!-- Online Repository Button -->
-                <button type="button" onclick="openRepositoryModal()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition">
+                <button type="button" onclick="openRepositoryModal()" class="px-3 py-2 rounded-lg bg-slate-900/80 hover:bg-slate-900 text-white border border-white/20 text-xs font-bold flex items-center gap-2 shadow-xs transition">
                     <i class="fa-solid fa-folder-open text-amber-400"></i>
                     <span>Repositório</span>
                     <span id="repo-count-badge" class="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-extrabold">0</span>
                 </button>
 
                 <!-- Direct PDF Export Button -->
-                <button type="button" id="btn-export-pdf" onclick="exportDocumentToPDF()" class="px-3.5 py-2 rounded-lg bg-gradient-to-r from-[#1B3888] to-[#142864] hover:from-[#142864] hover:to-[#0f1e4d] text-white text-xs font-bold flex items-center gap-2 shadow-sm transition" title="Gerar e baixar documento em PDF de alta definição">
-                    <i id="btn-export-pdf-icon" class="fa-solid fa-file-pdf text-rose-300"></i>
+                <button type="button" id="btn-export-pdf" onclick="exportDocumentToPDF()" class="px-3.5 py-2 rounded-lg bg-[#2ea843] hover:bg-[#217d31] text-white text-xs font-bold flex items-center gap-2 shadow-sm transition" title="Gerar e baixar documento em PDF de alta definição">
+                    <i id="btn-export-pdf-icon" class="fa-solid fa-file-pdf text-white"></i>
                     <span id="btn-export-pdf-label">Gerar PDF</span>
                 </button>
             </div>
@@ -838,9 +838,9 @@
         });
 
         function getAluparLogoSVG(heightPx = 30) {
-            if (typeof driveCompanyLogos === 'object' && driveCompanyLogos['ALUPAR']) {
+            if (typeof driveCompanyLogos === 'object' && driveCompanyLogos['ALUPAR_COLORIDA']) {
                 const maxW = Math.round(heightPx * 3.4);
-                return `<img src="${driveCompanyLogos['ALUPAR']}" alt="Alupar" style="display:block; height:${heightPx}px; width:auto; max-width:${maxW}px; object-fit:contain;">`;
+                return `<img src="${driveCompanyLogos['ALUPAR_COLORIDA']}" alt="Alupar" style="display:block; height:${heightPx}px; width:auto; max-width:${maxW}px; object-fit:contain;">`;
             }
             const widthPx = Math.round(heightPx * 3.05);
             return `
@@ -2556,8 +2556,9 @@
 
         function atualizarLogoTopbarAlupar() {
             const box = document.getElementById('topbar-alupar-logo');
-            if (box && typeof driveCompanyLogos === 'object' && driveCompanyLogos['ALUPAR']) {
-                box.innerHTML = getAluparLogoSVG(28);
+            const src = (typeof driveCompanyLogos === 'object') ? (driveCompanyLogos['ALUPAR_BRANCA'] || driveCompanyLogos['ALUPAR']) : '';
+            if (box && src) {
+                box.innerHTML = `<img src="${src}" alt="Alupar" style="display:block; height:32px; width:auto; max-width:140px; object-fit:contain;">`;
             }
         }
 
