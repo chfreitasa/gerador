@@ -409,7 +409,6 @@
                             <div class="flex flex-wrap items-center justify-between gap-1.5">
                                 <label class="block text-[11px] font-bold text-alupar-navy">
                                     1.1 Título do Documento *
-                                    <span id="title-code-example-hint" class="block sm:inline font-normal text-[10px] text-slate-500">(Compõe o nome OM.NI.26001 - NOME DO DOCUMENTO)</span>
                                 </label>
                                 <div class="flex items-center gap-1.5">
                                     <button type="button" id="btn-undo-title" onclick="undoTitleAI()" class="hidden px-2 py-1 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-semibold items-center gap-1 transition" title="Restaurar texto anterior">
@@ -1643,9 +1642,6 @@
             const badgePattern = document.getElementById('badge-doc-pattern');
             if (badgePattern) badgePattern.textContent = code;
 
-            const titleHint = document.getElementById('title-code-example-hint');
-            if (titleHint) titleHint.textContent = `(Compõe o nome ${code} - NOME DO DOCUMENTO)`;
-
             const footerFilename = document.getElementById('footer-official-filename');
             if (footerFilename) footerFilename.textContent = officialName;
 
@@ -2634,8 +2630,8 @@
 
         // Restaura, do Drive, as fotos que faltam neste navegador ao abrir/editar
         // um documento (o banco guarda o mapa de IDs; o Drive guarda as imagens).
-        async function trazerFotosDoDrive(doc) {
-            if (!driveConfigurado() || !doc || !doc.id) return 0;
+        async function trazerFotosDoDrive(doc, salvarNoEspelho = true) {
+            if (!driveConfigurado() || !doc || (salvarNoEspelho && !doc.id)) return 0;
             const mapa = mapaFotosDoDoc(doc);
             const alvos = [];
             cadaSlotDeFoto(doc, (chave, slot) => {
@@ -2653,12 +2649,14 @@
                 }
             }
             if (baixadas) {
-                // Espelha as fotos baixadas: reabrir este documento aqui fica instantâneo
-                const docEspelho = JSON.parse(JSON.stringify(doc));
-                const idx = lojaLocal.findIndex(d => d.id === doc.id);
-                if (idx >= 0) lojaLocal[idx] = docEspelho;
-                else lojaLocal.unshift(docEspelho);
-                salvarLojaLocal();
+                if (salvarNoEspelho && doc.id) {
+                    // Espelha as fotos baixadas: reabrir este documento aqui fica instantâneo
+                    const docEspelho = JSON.parse(JSON.stringify(doc));
+                    const idx = lojaLocal.findIndex(d => d.id === doc.id);
+                    if (idx >= 0) lojaLocal[idx] = docEspelho;
+                    else lojaLocal.unshift(docEspelho);
+                    salvarLojaLocal();
+                }
                 renderAllBlockEditors();
                 renderA4Document();
                 showToast(baixadas + ' foto(s) restaurada(s) do Google Drive.', 'success');
@@ -3708,6 +3706,10 @@
                                 <i class="fa-solid ${podeAlterar ? 'fa-pen-to-square' : 'fa-eye'}"></i>
                                 <span>${podeAlterar ? 'Abrir / Editar' : 'Visualizar'}</span>
                             </button>
+                            <button type="button" onclick="duplicateReportFromRepo('${rep.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold flex items-center gap-1.5 transition" title="Criar um novo relatório a partir deste">
+                                <i class="fa-solid fa-copy"></i>
+                                <span>Duplicar</span>
+                            </button>
                             ${podeAlterar ? `<button type="button" onclick="promptDeleteRepoItem('${rep.id}')" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center transition" title="Excluir documento (requer código 0000)">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>` : ''}
@@ -3757,6 +3759,67 @@
                 showToast(`Documento ${code} aberto em modo visualização (apenas o elaborador ou administradores podem salvá-lo).`, 'warning');
             } else {
                 showToast(`Documento ${code} carregado para edição.`, 'success');
+            }
+        };
+
+        window.duplicateReportFromRepo = async function (reportId) {
+            const found = repositoryReports.find((r) => r.id === reportId);
+            if (!found) {
+                showToast('Documento não encontrado no repositório.', 'error');
+                return;
+            }
+
+            const base = createDefaultTemplate();
+            const cloned = JSON.parse(JSON.stringify(found));
+            const docType = cloned.docType === 'REL' ? 'REL' : 'NI';
+            const hoje = new Date();
+            const year = hoje.getFullYear();
+            const nextSeq = getNextAvailableSeq(docType, year);
+
+            delete cloned.id;
+            delete cloned.drive;
+            delete cloned.criadoPor;
+            delete cloned.criadoPorLogin;
+            delete cloned.editadoPor;
+            delete cloned.editadoPorLogin;
+            delete cloned.createdAt;
+            delete cloned.updatedAt;
+            delete cloned.somenteLocal;
+            delete cloned.officialCode;
+            delete cloned.officialName;
+
+            currentReport = {
+                ...base,
+                ...cloned,
+                id: null,
+                docType,
+                year,
+                seqNumber: nextSeq,
+                manualSeqOverride: false,
+                date: hoje.toISOString().slice(0, 10),
+                revision: '00',
+                author: nomeOperadorLogado(),
+                sector: setorUsuarioAtual(),
+                resumoBlocks: Array.isArray(cloned.resumoBlocks) ? cloned.resumoBlocks : base.resumoBlocks,
+                extraTopics: Array.isArray(cloned.extraTopics) ? cloned.extraTopics : [],
+                conclusaoBlocks: Array.isArray(cloned.conclusaoBlocks) ? cloned.conclusaoBlocks : base.conclusaoBlocks
+            };
+
+            titlePrevText = '';
+            syncFormInputsFromState();
+            renderAllBlockEditors();
+            switchEditorTab('dados');
+            renderA4Document();
+            updateEditingModeBanner();
+            closeRepositoryModal();
+
+            const newCode = formatDocumentCode(currentReport.docType, currentReport.year, currentReport.seqNumber);
+            showToast(`Relatório duplicado como novo rascunho (${newCode}).`, 'success');
+
+            // Se o original tiver fotos apenas no Drive, restaura as imagens para a cópia sem criar rascunho fantasma
+            if (found.drive && found.drive.fotos && driveConfigurado()) {
+                const espelhoDrive = { drive: found.drive, resumoBlocks: currentReport.resumoBlocks, conclusaoBlocks: currentReport.conclusaoBlocks, extraTopics: currentReport.extraTopics };
+                await trazerFotosDoDrive(espelhoDrive, false);
             }
         };
 
