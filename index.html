@@ -1713,6 +1713,7 @@ async function fazerLogin() {
             e.style.opacity = '0';
             location.hash = '#portal';
             navigate();
+            aplicarLogoAluparDrive();
         } else if (r.status === 403 && r.dados && r.dados.code === 'pendente') {
             e.innerText = '⏳ Seu cadastro ainda aguarda aprovação de um Administrador.';
             e.style.opacity = '1';
@@ -3158,6 +3159,47 @@ function dataHojeISO() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+let _aluparLogoBuscada = false;
+async function aplicarLogoAluparDrive() {
+    const aplicarSrc = (src) => {
+        if (!src || String(src).indexOf('data:image/') !== 0) return false;
+        document.querySelectorAll('.alupar-logo').forEach((el) => {
+            el.style.background = '#ffffff';
+            el.style.padding = '5px 14px';
+            el.style.borderRadius = '10px';
+            el.style.display = 'inline-flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = 'Alupar';
+            img.style.height = '34px';
+            img.style.width = 'auto';
+            img.style.maxWidth = '150px';
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+            el.appendChild(img);
+        });
+        return true;
+    };
+
+    try {
+        const cache = JSON.parse(localStorage.getItem('alupar-ne-relatorios_logos') || '{}');
+        if (cache && aplicarSrc(cache.ALUPAR)) return;
+    } catch (_) {}
+
+    if (_aluparLogoBuscada || !isLoggedIn() || !configOk()) return;
+    _aluparLogoBuscada = true;
+    try {
+        const r = await apiFetch('/api/drive', { metodo: 'POST', corpo: { acao: 'lerLogos' } });
+        if (r && r.ok && r.dados && r.dados.ok && r.dados.logos) {
+            try { localStorage.setItem('alupar-ne-relatorios_logos', JSON.stringify(r.dados.logos)); } catch (_) {}
+            aplicarSrc(r.dados.logos.ALUPAR);
+        }
+    } catch (_) {}
+}
+
 (function init() {
     // Frame-buster: impede que o sistema seja embutido em outros sites (clickjacking)
     if (window.top !== window.self) {
@@ -3171,6 +3213,7 @@ function dataHojeISO() {
 
     verificarConfiguracao();
     navigate();
+    aplicarLogoAluparDrive();
 })();
 
 window.addEventListener('hashchange', navigate);

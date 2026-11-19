@@ -207,7 +207,7 @@
         <div class="max-w-[1680px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-3">
             <!-- Brand & Title -->
             <div class="flex items-center gap-3">
-                <div class="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center">
+                <div id="topbar-alupar-logo" class="px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center">
                     <svg viewBox="0 0 305 100" class="h-7 w-auto" xmlns="http://www.w3.org/2000/svg" aria-label="Alupar">
                         <path d="M8 82 L31 18 H46 L69 82 H54 L49 67 H28 L23 82 Z M32 55 H45 L38.5 34 Z" fill="#274C9C"/>
                         <rect x="74" y="18" width="13" height="64" rx="2" fill="#274C9C"/>
@@ -2554,13 +2554,22 @@
             if (txt) txt.textContent = detalhe;
         }
 
+        function atualizarLogoTopbarAlupar() {
+            const box = document.getElementById('topbar-alupar-logo');
+            if (box && typeof driveCompanyLogos === 'object' && driveCompanyLogos['ALUPAR']) {
+                box.innerHTML = getAluparLogoSVG(28);
+            }
+        }
+
         async function carregarLogosDoDrive() {
+            atualizarLogoTopbarAlupar();
             if (!driveConfigurado()) return;
             try {
                 const r = await driveChamar({ acao: 'lerLogos' });
                 if (r && r.logos && typeof r.logos === 'object') {
                     driveCompanyLogos = r.logos;
                     try { localStorage.setItem(LS_REL_LOGOS, JSON.stringify(r.logos)); } catch (_) {}
+                    atualizarLogoTopbarAlupar();
                     updateCompanyVisualIndicator();
                     renderA4Document();
                 }
@@ -4141,6 +4150,7 @@
         updateEditingModeBanner();
         updateNextAvailableNumberUI();
         iniciarRepositorio();
+        atualizarLogoTopbarAlupar();
         testarDrive();
     </script>
 </body>
