@@ -565,14 +565,8 @@
                             </div>
 
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Setor</label>
-                                <select id="input-sector" onchange="updateReportField('sector', this.value)" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 focus:border-blue-600 outline-none">
-                                    <option value="">Selecione o setor...</option>
-                                    <option value="TELECOM">Telecom</option>
-                                    <option value="SPCS">SPCS</option>
-                                    <option value="EAT">EAT</option>
-                                    <option value="OPERAÇÃO">Operação</option>
-                                </select>
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Setor <span class="text-[10px] font-normal text-slate-400">(fixo pelo usuário)</span></label>
+                                <input type="text" id="input-sector" readonly class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 cursor-not-allowed outline-none" title="Preenchido automaticamente com o setor do usuário logado">
                             </div>
                         </div>
 
@@ -1737,22 +1731,13 @@
             const osInput = document.getElementById('input-os');
             if (osInput) osInput.value = currentReport.os || '';
 
-            if (!currentReport.id && !currentReport.sector) {
-                currentReport.sector = setorUsuarioAtual();
-            }
-            const sectorSelect = document.getElementById('input-sector');
-            if (sectorSelect) {
-                const valSetor = normalizarSetorRel(currentReport.sector || '');
-                if (valSetor && !Array.from(sectorSelect.options).some(o => o.value === valSetor)) {
-                    const opt = document.createElement('option');
-                    opt.value = valSetor;
-                    opt.textContent = nomeSetorLegivel(valSetor);
-                    sectorSelect.appendChild(opt);
-                }
-                sectorSelect.value = valSetor;
-            }
             if (!currentReport.id) {
+                currentReport.sector = setorUsuarioAtual();
                 currentReport.author = nomeOperadorLogado();
+            }
+            const sectorInput = document.getElementById('input-sector');
+            if (sectorInput) {
+                sectorInput.value = nomeSetorLegivel(currentReport.sector || setorUsuarioAtual());
             }
             const authorInput = document.getElementById('input-author');
             if (authorInput) authorInput.value = currentReport.author || nomeOperadorLogado();
@@ -3415,10 +3400,8 @@
                 showToast('Permissão negada: apenas administradores ou quem elaborou pode editar este relatório.', 'error');
                 return;
             }
-            if (!currentReport.id && !currentReport.sector) {
-                currentReport.sector = setorUsuarioAtual();
-            }
             if (!currentReport.id) {
+                currentReport.sector = setorUsuarioAtual();
                 currentReport.author = nomeOperadorLogado();
             }
 
