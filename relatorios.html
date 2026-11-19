@@ -568,12 +568,14 @@
                         <!-- Elaborador / Revisor (Nomes dos Técnicos / Engenheiros) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div>
-                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Elaborado por (Técnico / Engenheiro)</label>
-                                <input type="text" id="input-author" oninput="updateReportField('author', this.value)" placeholder="Ex: Eng. João Silva / Téc. Pedro Santos" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-900 focus:border-blue-600 outline-none">
+                                <label class="block text-[11px] font-bold text-slate-700 mb-1">Elaborado por <span class="text-[10px] font-normal text-slate-400">(fixo pelo usuário)</span></label>
+                                <input type="text" id="input-author" readonly class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 cursor-not-allowed outline-none" title="Preenchido automaticamente com o usuário logado">
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 mb-1">Revisado por (Técnico / Engenheiro)</label>
-                                <input type="text" id="input-reviewer" oninput="updateReportField('reviewer', this.value)" placeholder="Ex: Eng. Maria Oliveira" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-900 focus:border-blue-600 outline-none">
+                                <select id="input-reviewer" onchange="updateReportField('reviewer', this.value)" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 focus:border-blue-600 outline-none">
+                                    <option value="">Selecione o revisor...</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -706,12 +708,15 @@
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center gap-2.5">
                 <div class="relative flex-1 min-w-[220px]">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                    <input type="text" id="repo-search-input" oninput="renderRepositoryList()" placeholder="Buscar por código (OM.NI.26001, OM.REL...), título, subestação ou empresa..." class="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 focus:border-blue-600 outline-none">
+                    <input type="text" id="repo-search-input" oninput="renderRepositoryList()" placeholder="Buscar por código, título, elaborador, subestação ou empresa..." class="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 focus:border-blue-600 outline-none">
                 </div>
                 <select id="repo-type-filter" onchange="renderRepositoryList()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none">
                     <option value="ALL">Todos os Documentos</option>
                     <option value="NI">Notas Informativas (OM.NI)</option>
                     <option value="REL">Relatórios Técnicos (OM.REL)</option>
+                </select>
+                <select id="repo-author-filter" onchange="renderRepositoryList()" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none max-w-[210px]">
+                    <option value="ALL">Todos os Elaboradores</option>
                 </select>
                 <button type="button" id="btn-sync-locais" onclick="sincronizarDocumentosLocais()" class="hidden px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition" title="Enviar ao banco os documentos salvos apenas neste navegador">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -971,8 +976,8 @@
                 manufacturerModel: '',
                 serialNumber: '',
                 title: 'Falha nas fontes de alimentação dos conversores óticos dos painéis CFTV.',
-                author: 'Eng. Carlos Eduardo Silva',
-                reviewer: 'Eng. Marcos Vinícius Almeida',
+                author: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('etb_operador')) || 'Operador',
+                reviewer: '',
                 resumoBlocks: [
                     {
                         id: 'blk_res_1',
@@ -1036,6 +1041,74 @@
         const LS_REL_CONTADORES = `${appId}_counters`;
         let lojaLocal = [];      // espelho local completo (com fotos)
         let listaServidor = [];  // cópia em memória do que veio do banco
+        let listaUsuariosSistema = []; // [{ login, label, role }] vindos do servidor
+
+        function papelAtual() {
+            return (sessionStorage.getItem('etb_role') || 'user').toLowerCase();
+        }
+        function loginAtual() {
+            return (sessionStorage.getItem('etb_login') || '').toLowerCase();
+        }
+        function nomeOperadorLogado() {
+            return sessionStorage.getItem('etb_operador') || 'Operador';
+        }
+        function podeEditarOuExcluirRelatorio(rep) {
+            const papel = papelAtual();
+            if (papel === 'admin' || papel === 'master') return true;
+            if (!rep || !rep.id) return true; // novo documento
+            const meuLogin = loginAtual();
+            const criadoPorLogin = String(rep.criadoPorLogin || '').toLowerCase().trim();
+            if (criadoPorLogin) return !!meuLogin && criadoPorLogin === meuLogin;
+            const meuNome = nomeOperadorLogado().toLowerCase().trim();
+            const autor = String(rep.author || '').toLowerCase().trim();
+            return !!meuNome && autor === meuNome;
+        }
+        function popularSelectUsuariosRelatorios() {
+            const base = listaUsuariosSistema.length
+                ? listaUsuariosSistema
+                : (loginAtual() ? [{ login: loginAtual(), label: nomeOperadorLogado(), role: papelAtual() }] : []);
+
+            const revSelect = document.getElementById('input-reviewer');
+            if (revSelect) {
+                const atual = currentReport.reviewer || '';
+                const nomes = new Set(base.map(u => u.label).filter(Boolean));
+                let html = '<option value="">Selecione o revisor...</option>';
+                base.forEach(u => {
+                    html += `<option value="${escapeHtml(u.label)}">${escapeHtml(u.label)}</option>`;
+                });
+                if (atual && !nomes.has(atual)) {
+                    html += `<option value="${escapeHtml(atual)}">${escapeHtml(atual)}</option>`;
+                }
+                revSelect.innerHTML = html;
+                revSelect.value = atual;
+            }
+
+            const filtroSelect = document.getElementById('repo-author-filter');
+            if (filtroSelect) {
+                const selecaoAnterior = filtroSelect.value || 'ALL';
+                const mapa = new Map();
+                base.forEach(u => {
+                    if (u.login) mapa.set('login:' + u.login.toLowerCase(), { val: 'login:' + u.login.toLowerCase(), label: u.label });
+                });
+                repositoryReports.forEach(rep => {
+                    const lg = String(rep.criadoPorLogin || '').toLowerCase().trim();
+                    const nm = String(rep.author || '').trim();
+                    if (lg) {
+                        if (!mapa.has('login:' + lg)) mapa.set('login:' + lg, { val: 'login:' + lg, label: nm || lg });
+                    } else if (nm) {
+                        const key = 'name:' + nm.toLowerCase();
+                        if (!mapa.has(key)) mapa.set(key, { val: key, label: nm });
+                    }
+                });
+                const itens = Array.from(mapa.values()).sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+                let htmlF = '<option value="ALL">Todos os Elaboradores</option>';
+                itens.forEach(it => {
+                    htmlF += `<option value="${escapeHtml(it.val)}">${escapeHtml(it.label)}</option>`;
+                });
+                filtroSelect.innerHTML = htmlF;
+                filtroSelect.value = itens.some(it => it.val === selecaoAnterior) ? selecaoAnterior : 'ALL';
+            }
+        }
 
         // =========================================================================
         // 3. GUARDA DE SESSÃO & REPOSITÓRIO NO BANCO DE DADOS (WORKER + JSONBIN)
@@ -1259,6 +1332,9 @@
                 const dadosRel = (dados.relatorios && typeof dados.relatorios === 'object') ? dados.relatorios : {};
                 listaServidor = (Array.isArray(dadosRel.lista) ? dadosRel.lista : []).slice();
                 yearCountersMap = Object.assign({}, (dadosRel.contadores && typeof dadosRel.contadores === 'object') ? dadosRel.contadores : {});
+                if (Array.isArray(dados.usuarios)) {
+                    listaUsuariosSistema = dados.usuarios.filter(u => u && u.login && u.label);
+                }
                 listaServidor.sort(ordenarPorAtualizacao);
                 salvarCacheServidor();
                 definirStatusBanco(true, 'sincronizado com a equipe');
@@ -1621,11 +1697,13 @@
             const osInput = document.getElementById('input-os');
             if (osInput) osInput.value = currentReport.os || '';
 
+            if (!currentReport.id) {
+                currentReport.author = nomeOperadorLogado();
+            }
             const authorInput = document.getElementById('input-author');
-            if (authorInput) authorInput.value = currentReport.author || '';
+            if (authorInput) authorInput.value = currentReport.author || nomeOperadorLogado();
 
-            const reviewerInput = document.getElementById('input-reviewer');
-            if (reviewerInput) reviewerInput.value = currentReport.reviewer || '';
+            popularSelectUsuariosRelatorios();
 
             // Substation dropdown sync
             const selectSub = document.getElementById('select-substation');
@@ -3192,12 +3270,24 @@
             const code = formatDocumentCode(currentReport.docType, currentReport.year, currentReport.seqNumber);
             const typeLabel = currentReport.docType === 'REL' ? 'Relatório Técnico' : 'Nota Informativa';
 
+            const btnSave = document.getElementById('btn-save-ni');
+            const btnSaveLabel = document.getElementById('btn-save-ni-label');
+            const somenteVisualizacao = !!(currentReport.id && !podeEditarOuExcluirRelatorio(currentReport));
+
             if (currentReport.id) {
-                if (titleEl) titleEl.textContent = `Editando ${typeLabel}: ${code}`;
-                if (subEl) subEl.textContent = (currentReport.title || '').trim() || 'Documento carregado do repositório';
+                if (titleEl) titleEl.textContent = somenteVisualizacao ? `Visualizando ${typeLabel}: ${code}` : `Editando ${typeLabel}: ${code}`;
+                if (subEl) subEl.textContent = somenteVisualizacao
+                    ? 'Modo visualização (apenas administradores ou o elaborador podem editar)'
+                    : ((currentReport.title || '').trim() || 'Documento carregado do repositório');
             } else {
                 if (titleEl) titleEl.textContent = `Novo ${typeLabel} • Sequência Automática (${code})`;
                 if (subEl) subEl.textContent = 'Código único reservado automaticamente ao salvar no repositório';
+            }
+            if (btnSave) {
+                btnSave.disabled = somenteVisualizacao;
+                btnSave.classList.toggle('opacity-50', somenteVisualizacao);
+                btnSave.classList.toggle('cursor-not-allowed', somenteVisualizacao);
+                if (btnSaveLabel && somenteVisualizacao) btnSaveLabel.textContent = 'Somente visualização';
             }
             syncCodeDisplaysOnly();
         }
@@ -3216,7 +3306,7 @@
             fresh.bayLocation = '';
             fresh.manufacturerModel = '';
             fresh.serialNumber = '';
-            fresh.author = '';
+            fresh.author = nomeOperadorLogado();
             fresh.reviewer = '';
             fresh.resumoBlocks = [
                 {
@@ -3257,6 +3347,14 @@
                 switchEditorTab('dados');
                 return;
             }
+            if (currentReport.id && !podeEditarOuExcluirRelatorio(currentReport)) {
+                showToast('Permissão negada: apenas administradores ou quem elaborou pode editar este relatório.', 'error');
+                return;
+            }
+            if (!currentReport.id) {
+                currentReport.author = nomeOperadorLogado();
+            }
+
             if (!validateSequenceUniquenessUI()) {
                 const dupCode = formatDocumentCode(currentReport.docType, currentReport.year, currentReport.seqNumber);
                 showToast(`Não é possível salvar: o código ${dupCode} já existe no repositório!`, 'error');
@@ -3418,12 +3516,24 @@
                 btnSync.classList.toggle('hidden', !(isCloudConnected && apiConfigurada() && pendentesDeSincronizacao().length > 0));
             }
 
+            popularSelectUsuariosRelatorios();
+
             const query = (document.getElementById('repo-search-input')?.value || '').trim().toLowerCase();
             const typeFilter = document.getElementById('repo-type-filter')?.value || 'ALL';
+            const authorFilter = document.getElementById('repo-author-filter')?.value || 'ALL';
 
             const filtered = repositoryReports.filter((rep) => {
                 const repType = rep.docType === 'REL' ? 'REL' : 'NI';
                 if (typeFilter !== 'ALL' && repType !== typeFilter) return false;
+                if (authorFilter !== 'ALL') {
+                    if (authorFilter.startsWith('login:')) {
+                        const alvoLogin = authorFilter.slice(6);
+                        if (String(rep.criadoPorLogin || '').toLowerCase().trim() !== alvoLogin) return false;
+                    } else if (authorFilter.startsWith('name:')) {
+                        const alvoNome = authorFilter.slice(5);
+                        if (String(rep.author || '').toLowerCase().trim() !== alvoNome) return false;
+                    }
+                }
                 if (!query) return true;
 
                 const code = formatDocumentCode(repType, rep.year, rep.seqNumber).toLowerCase();
@@ -3432,7 +3542,8 @@
                     (rep.title || '').toLowerCase().includes(query) ||
                     (rep.substation || '').toLowerCase().includes(query) ||
                     (rep.agentShort || '').toLowerCase().includes(query) ||
-                    (rep.author || '').toLowerCase().includes(query)
+                    (rep.author || '').toLowerCase().includes(query) ||
+                    (rep.criadoPor || '').toLowerCase().includes(query)
                 );
             });
 
@@ -3454,6 +3565,7 @@
                     ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
                     : 'bg-[#DCE6F7] text-alupar-navy border-blue-300';
 
+                const podeAlterar = podeEditarOuExcluirRelatorio(rep);
                 return `
                     <div class="bg-white rounded-xl border border-slate-200 hover:border-blue-300 p-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition">
                         <div class="min-w-0 space-y-1">
@@ -3470,13 +3582,13 @@
                             ${driveInfoDoDoc(rep) ? `<p class="text-[10px] font-semibold text-emerald-700"><i class="fa-brands fa-google-drive"></i> ${escapeHtml(driveInfoDoDoc(rep))}</p>` : ''}
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0">
-                            <button type="button" onclick="loadReportFromRepo('${rep.id}')" class="px-3 py-1.5 rounded-lg bg-[#1B3888] hover:bg-[#142864] text-white text-[11px] font-bold flex items-center gap-1.5 transition">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                                <span>Abrir / Editar</span>
+                            <button type="button" onclick="loadReportFromRepo('${rep.id}')" class="px-3 py-1.5 rounded-lg ${podeAlterar ? 'bg-[#1B3888] hover:bg-[#142864] text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'} text-[11px] font-bold flex items-center gap-1.5 transition">
+                                <i class="fa-solid ${podeAlterar ? 'fa-pen-to-square' : 'fa-eye'}"></i>
+                                <span>${podeAlterar ? 'Abrir / Editar' : 'Visualizar'}</span>
                             </button>
-                            <button type="button" onclick="promptDeleteRepoItem('${rep.id}')" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center transition" title="Excluir documento (requer código 0000)">
+                            ${podeAlterar ? `<button type="button" onclick="promptDeleteRepoItem('${rep.id}')" class="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center transition" title="Excluir documento (requer código 0000)">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
+                            </button>` : ''}
                         </div>
                     </div>
                 `;
@@ -3519,7 +3631,11 @@
             closeRepositoryModal();
 
             const code = formatDocumentCode(currentReport.docType, currentReport.year, currentReport.seqNumber);
-            showToast(`Documento ${code} carregado para edição.`, 'success');
+            if (!podeEditarOuExcluirRelatorio(currentReport)) {
+                showToast(`Documento ${code} aberto em modo visualização (apenas o elaborador ou administradores podem salvá-lo).`, 'warning');
+            } else {
+                showToast(`Documento ${code} carregado para edição.`, 'success');
+            }
         };
 
         window.handleDeleteSecurityCodeInput = function (rawVal) {
@@ -3548,6 +3664,10 @@
         window.promptDeleteRepoItem = function (reportId) {
             const found = repositoryReports.find((r) => r.id === reportId);
             if (!found) return;
+            if (!podeEditarOuExcluirRelatorio(found)) {
+                showToast('Permissão negada: usuários comuns só podem excluir relatórios elaborados por eles mesmos.', 'error');
+                return;
+            }
 
             pendingDeleteReportId = reportId;
             const code = formatDocumentCode(found.docType, found.year, found.seqNumber);
