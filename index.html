@@ -2399,6 +2399,7 @@ function intervaloUtcFerias(inicioIso, dias) {
 
 function verificarConflitoSetorFerias(novoReg, lista) {
     const setorNovo = normalizarSetorFerias(novoReg.setor);
+    const seNova = String((novoReg && novoReg.subestacao) || '').toUpperCase().trim();
     const ivNovo = intervaloUtcFerias(novoReg.inicioIso, novoReg.dias);
     if (!setorNovo || !ivNovo) return null;
 
@@ -2410,6 +2411,11 @@ function verificarConflitoSetorFerias(novoReg, lista) {
         if (ivNovo.ini <= ivOutro.fim && ivOutro.ini <= ivNovo.fim) {
             if (mesmoColaboradorFerias(novoReg, outro)) {
                 return `Conflito de datas: ${novoReg.nome} já possui férias marcadas de ${outro.inicioStr} a ${outro.fimStr}.`;
+            }
+            if (setorNovo === 'OPERAÇÃO') {
+                const seOutra = String((outro && outro.subestacao) || '').toUpperCase().trim();
+                if (seNova && seOutra && seNova !== seOutra) continue;
+                return `Conflito no setor OPERAÇÃO (${seNova}): ${outro.nome} já possui férias marcadas de ${outro.inicioStr} a ${outro.fimStr}.`;
             }
             return `Conflito no setor ${setorNovo}: ${outro.nome} já possui férias marcadas de ${outro.inicioStr} a ${outro.fimStr}.`;
         }
@@ -2469,6 +2475,7 @@ async function salvarFerias() {
         nome: nomeColaborador,
         titularLogin: loginTitular,
         setor: setor,
+        subestacao: subestacao,
         inicioIso: i,
         dias: d
     };
