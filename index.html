@@ -749,15 +749,14 @@
         .day-name { background: #f1f5f9; padding: 8px 0; font-weight: 700; color: var(--alupar-blue); min-width: 0; border-bottom: 1px solid #e2e8f0; }
         .day-cell { border: 0.5px solid #edf2f7; min-height: 60px; min-width: 0; overflow: hidden; padding: 3px 2px; font-size: 0.85em; display: flex; flex-direction: column; align-items: center; }
         .day-num { font-weight: 700; margin-bottom: 2px; color: #334155; }
-        .day-cell.has-vacation { background-color: var(--alupar-green-light); }
-        .day-cell.overlap { background-color: #ffebee; border-color: #ffcdd2; }
+        .day-cell.has-vacation,
+        .day-cell.overlap { background-color: var(--alupar-green-light); }
         .vacation-tag {
             font-size: 0.62em; background: var(--alupar-green); color: white;
             padding: 1px 2px; border-radius: 3px; margin-top: 2px; width: 100%; max-width: 100%;
             text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             display: block; font-weight: 600;
         }
-        .day-cell.overlap .vacation-tag { background: var(--error); }
 
         @media (max-width: 950px) {
             .ferias-form-grid, .ferias-form-grid.admin-mode { grid-template-columns: 1fr 1fr; }
@@ -2710,15 +2709,18 @@ function gerarAno(ano, ferias, container) {
         let pds = new Date(ano, m, 1).getDay();
         for (let i = 0; i < pds; i++) g.innerHTML += '<div class="day-cell"></div>';
 
+        const coresSobreposicao = ['var(--alupar-green)', '#2563eb', '#d97706', '#7c3aed', '#0d9488', '#db2777', '#4f46e5', '#0284c7'];
         let qtd = new Date(ano, m + 1, 0).getDate();
         for (let d = 1; d <= qtd; d++) {
             let dt = new Date(ano, m, d).getTime(),
-                ef = ferias.filter(f => dt >= f.inicioTimestamp && dt <= f.fimTimestamp),
+                ef = ferias.filter(f => dt >= f.inicioTimestamp && dt <= f.fimTimestamp)
+                    .sort((a, b) => (a.inicioTimestamp - b.inicioTimestamp) || ((a.id || 0) - (b.id || 0))),
                 cc = 'day-cell';
             if (ef.length > 0) cc += ef.length > 1 ? ' overlap' : ' has-vacation';
-            let th = ef.map(f => {
+            let th = ef.map((f, idx) => {
                 const infoTooltip = `${f.nome} | ${f.setor || 'S/S'} | ${f.subestacao || 'S/SE'}`;
-                return `<div class="vacation-tag" title="${escapeHtml(infoTooltip)}">${escapeHtml(f.nome.split(' ')[0])}</div>`;
+                const corTag = ef.length > 1 ? coresSobreposicao[idx % coresSobreposicao.length] : 'var(--alupar-green)';
+                return `<div class="vacation-tag" style="background: ${corTag};" title="${escapeHtml(infoTooltip)}">${escapeHtml(f.nome.split(' ')[0])}</div>`;
             }).join('');
             g.innerHTML += `<div class="${cc}"><div class="day-num">${d}</div>${th}</div>`;
         }
