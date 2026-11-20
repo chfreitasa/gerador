@@ -251,6 +251,13 @@
                     <span id="drive-status-text">Drive não configurado</span>
                 </div>
 
+                <!-- Notificações de Revisão Pendente -->
+                <button type="button" id="btn-review-notifications" onclick="openReviewNotificationsModal()" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/25 text-xs font-bold flex items-center gap-2 shadow-xs transition" title="Relatórios aguardando sua revisão">
+                    <i id="review-notif-icon" class="fa-solid fa-bell text-slate-200"></i>
+                    <span class="hidden sm:inline">Revisões</span>
+                    <span id="review-notif-count-badge" class="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-extrabold">0</span>
+                </button>
+
                 <!-- Online Repository Button -->
                 <button type="button" onclick="openRepositoryModal()" class="px-3 py-2 rounded-lg bg-slate-900/80 hover:bg-slate-900 text-white border border-white/20 text-xs font-bold flex items-center gap-2 shadow-xs transition">
                     <i class="fa-solid fa-folder-open text-amber-400"></i>
@@ -321,6 +328,23 @@
 
                 <!-- TAB 1: CAPA & DESCRIÇÃO -->
                 <div id="tab-dados" class="editor-tab-panel space-y-4">
+
+                    <!-- Banner de Revisão Pendente (visível apenas para o revisor designado) -->
+                    <div id="editor-review-banner" class="hidden rounded-xl p-3 bg-amber-50 border border-amber-300 flex flex-wrap items-center justify-between gap-2.5 shadow-2xs">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-bell"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-extrabold text-amber-950">Revisão solicitada para você</p>
+                                <p class="text-[11px] text-amber-800">Confira o documento e marque como revisado quando concluir.</p>
+                            </div>
+                        </div>
+                        <button type="button" id="btn-mark-reviewed-banner" onclick="marcarRelatorioComoRevisado(currentReport.id)" class="px-3 py-1.5 rounded-lg bg-[#2ea843] hover:bg-[#217d31] text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition shrink-0">
+                            <i class="fa-solid fa-check-double"></i>
+                            <span>Marcar como Revisado</span>
+                        </button>
+                    </div>
 
                     <!-- Card: Tipo de Documento & Numeração Sequencial Única -->
                     <div class="bg-slate-50 rounded-xl p-4 border border-slate-200/90 border-t-4 border-t-[#009E0F] space-y-3 shadow-2xs">
@@ -767,6 +791,27 @@
             <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button type="button" onclick="closeDeleteModal()" class="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">Cancelar</button>
                 <button type="button" id="btn-confirm-delete" disabled class="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-45 disabled:cursor-not-allowed text-white text-xs font-bold transition">Excluir Permanentemente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NOTIFICAÇÕES DE REVISÃO -->
+    <div id="review-notifications-modal" class="no-print fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-3 sm:p-6">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[82vh] flex flex-col overflow-hidden">
+            <div class="px-5 py-4 bg-gradient-to-r from-[#183482] to-[#142864] text-white flex items-center justify-between border-b-4 border-[#2ea843]">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-bell text-amber-300 text-lg"></i>
+                    <div>
+                        <h3 class="text-sm font-extrabold">Relatórios Pendentes da Sua Revisão</h3>
+                        <p class="text-[11px] text-blue-100">A notificação permanece ativa até você revisar o documento</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReviewNotificationsModal()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="review-notifications-list" class="p-4 overflow-y-auto space-y-2.5 bg-slate-50 flex-1">
+                <!-- Populated dynamically -->
             </div>
         </div>
     </div>
@@ -1307,7 +1352,154 @@
             });
             repositoryReports.sort(ordenarPorAtualizacao);
             syncCountersWithRepository();
+            atualizarNotificacoesRevisao();
         }
+
+        function ehRevisorDoRelatorio(rep) {
+            if (!rep || !rep.reviewer) return false;
+            const meuLogin = loginAtual();
+            const revLogin = String(rep.reviewerLogin || '').toLowerCase().trim();
+            if (revLogin && meuLogin) return revLogin === meuLogin;
+            const meuNome = nomeOperadorLogado().toLowerCase().trim();
+            const revNome = String(rep.reviewer || '').toLowerCase().trim();
+            return !!meuNome && revNome === meuNome;
+        }
+
+        function ehMinhaRevisaoPendente(rep) {
+            return !!(rep && rep.id && rep.reviewer && rep.reviewStatus !== 'revisado' && ehRevisorDoRelatorio(rep));
+        }
+
+        function obterRevisoesPendentes() {
+            return repositoryReports.filter(ehMinhaRevisaoPendente);
+        }
+
+        function atualizarNotificacoesRevisao() {
+            const pendentes = obterRevisoesPendentes();
+            const btn = document.getElementById('btn-review-notifications');
+            const ico = document.getElementById('review-notif-icon');
+            const badge = document.getElementById('review-notif-count-badge');
+            if (badge) badge.textContent = String(pendentes.length);
+            if (btn) {
+                const tem = pendentes.length > 0;
+                btn.className = tem
+                    ? 'px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white border border-amber-300 text-xs font-bold flex items-center gap-2 shadow-xs transition animate-pulse'
+                    : 'px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/25 text-xs font-bold flex items-center gap-2 shadow-xs transition';
+                if (ico) ico.className = tem ? 'fa-solid fa-bell text-white' : 'fa-solid fa-bell text-slate-200';
+                if (badge) badge.className = tem ? 'px-1.5 py-0.2 rounded-full bg-white text-amber-900 text-[10px] font-extrabold' : 'px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-extrabold';
+            }
+
+            const banner = document.getElementById('editor-review-banner');
+            if (banner) {
+                const mostrarBanner = !!(currentReport && currentReport.id && ehMinhaRevisaoPendente(currentReport));
+                banner.classList.toggle('hidden', !mostrarBanner);
+            }
+        }
+
+        function renderReviewNotificationsModal() {
+            const container = document.getElementById('review-notifications-list');
+            if (!container) return;
+            const pendentes = obterRevisoesPendentes();
+            if (!pendentes.length) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500">
+                        <i class="fa-regular fa-circle-check text-3xl text-emerald-500 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-700">Nenhuma revisão pendente para você.</p>
+                        <p class="text-[11px] mt-1">Quando alguém selecionar você como revisor em um relatório, ele aparecerá aqui até ser revisado.</p>
+                    </div>
+                `;
+                return;
+            }
+            container.innerHTML = pendentes.map((rep) => {
+                const code = formatDocumentCode(rep.docType, rep.year, rep.seqNumber);
+                return `
+                    <div class="bg-white rounded-xl border border-amber-200 p-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="min-w-0 space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="px-2 py-0.5 rounded bg-[#DCE6F7] text-alupar-navy border border-blue-300 text-xs font-extrabold">${code}</span>
+                                <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold">Aguardando sua revisão</span>
+                            </div>
+                            <h4 class="text-xs sm:text-sm font-bold text-slate-900 truncate">${escapeHtml(rep.title || 'Sem título')}</h4>
+                            <p class="text-[10px] text-slate-500">Elaborado por: <strong>${escapeHtml(rep.author || rep.criadoPor || '—')}</strong> • ${escapeHtml(rep.substation || '')}</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onclick="loadReportFromRepo('${rep.id}'); closeReviewNotificationsModal();" class="px-3 py-1.5 rounded-lg bg-[#1B3888] hover:bg-[#142864] text-white text-[11px] font-bold flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-eye"></i>
+                                <span>Abrir</span>
+                            </button>
+                            <button type="button" onclick="marcarRelatorioComoRevisado('${rep.id}')" class="px-3 py-1.5 rounded-lg bg-[#2ea843] hover:bg-[#217d31] text-white text-[11px] font-bold flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-check-double"></i>
+                                <span>Revisado</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.openReviewNotificationsModal = function () {
+            renderReviewNotificationsModal();
+            const modal = document.getElementById('review-notifications-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        };
+
+        window.closeReviewNotificationsModal = function () {
+            const modal = document.getElementById('review-notifications-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        };
+
+        window.marcarRelatorioComoRevisado = async function (reportId) {
+            if (!reportId) return;
+            if (!(isCloudConnected && apiConfigurada())) {
+                showToast('Banco indisponível — conecte-se para confirmar a revisão.', 'warning');
+                return;
+            }
+            const btnBanner = document.getElementById('btn-mark-reviewed-banner');
+            if (btnBanner) btnBanner.disabled = true;
+            try {
+                const resp = await fetch(API_URL + '/api/relatorios/revisar', {
+                    method: 'POST',
+                    headers: cabecalhosAuth(),
+                    body: JSON.stringify({ id: reportId })
+                });
+                const dados = await resp.json().catch(() => ({}));
+                if (!resp.ok || !dados || !dados.ok) {
+                    throw new Error((dados && dados.erro) || ('HTTP ' + resp.status));
+                }
+                const atualizado = dados.rel;
+                if (atualizado) {
+                    const idxS = listaServidor.findIndex(x => String(x.id) === String(reportId));
+                    if (idxS >= 0) listaServidor[idxS] = atualizado;
+                    salvarCacheServidor();
+                    const idxL = lojaLocal.findIndex(x => String(x.id) === String(reportId));
+                    if (idxL >= 0) {
+                        lojaLocal[idxL].reviewStatus = atualizado.reviewStatus;
+                        lojaLocal[idxL].reviewedAt = atualizado.reviewedAt;
+                        lojaLocal[idxL].reviewedBy = atualizado.reviewedBy;
+                        salvarLojaLocal();
+                    }
+                    if (currentReport && String(currentReport.id) === String(reportId)) {
+                        currentReport.reviewStatus = atualizado.reviewStatus;
+                        currentReport.reviewedAt = atualizado.reviewedAt;
+                        currentReport.reviewedBy = atualizado.reviewedBy;
+                    }
+                }
+                remontarRepositorio();
+                renderRepositoryList();
+                renderReviewNotificationsModal();
+                updateEditingModeBanner();
+                showToast('Relatório marcado como revisado!', 'success');
+            } catch (err) {
+                showToast(err && err.message ? err.message : 'Não foi possível marcar como revisado.', 'error');
+            } finally {
+                if (btnBanner) btnBanner.disabled = false;
+            }
+        };
 
         async function iniciarRepositorio() {
             carregarLojaLocal();
@@ -3385,6 +3577,7 @@
                 if (btnSaveLabel && somenteVisualizacao) btnSaveLabel.textContent = 'Somente visualização';
             }
             syncCodeDisplaysOnly();
+            atualizarNotificacoesRevisao();
         }
 
         window.startNewReport = function () {
@@ -3698,6 +3891,9 @@
                             </div>
                             <h4 class="text-xs sm:text-sm font-bold text-slate-900 truncate">${escapeHtml(rep.title || 'Sem título')}</h4>
                             ${rep.author ? `<p class="text-[10px] text-slate-500">Elaborado por: <strong>${escapeHtml(rep.author)}</strong></p>` : ''}
+                            ${rep.reviewer ? (rep.reviewStatus === 'revisado'
+                                ? `<p class="text-[10px] font-semibold text-emerald-700"><i class="fa-solid fa-check-double"></i> Revisado por ${escapeHtml(rep.reviewer)}</p>`
+                                : `<p class="text-[10px] font-semibold text-amber-700"><i class="fa-solid fa-clock"></i> Aguardando revisão: ${escapeHtml(rep.reviewer)}</p>`) : ''}
                             ${(rep.editadoPor || rep.criadoPor) ? `<p class="text-[10px] text-slate-400">Gravado no banco por: ${escapeHtml(rep.editadoPor || rep.criadoPor || '')}</p>` : ''}
                             ${driveInfoDoDoc(rep) ? `<p class="text-[10px] font-semibold text-emerald-700"><i class="fa-brands fa-google-drive"></i> ${escapeHtml(driveInfoDoDoc(rep))}</p>` : ''}
                         </div>
