@@ -2436,6 +2436,69 @@
             }
         };
 
+        window.applyTextFormat = function (targetKey, blockId, formatType) {
+            const textarea = document.getElementById(`txt-blk-${blockId}`);
+            if (!textarea) return;
+
+            const marker = formatType === 'bold' ? '**' : '*';
+            const placeholder = formatType === 'bold' ? 'texto em negrito' : 'texto em itálico';
+            const val = textarea.value || '';
+            const start = textarea.selectionStart ?? val.length;
+            const end = textarea.selectionEnd ?? val.length;
+            const selected = val.slice(start, end);
+
+            let newVal = '';
+            let selStart = start;
+            let selEnd = end;
+
+            if (selected.length > 0) {
+                const mLen = marker.length;
+                const wrappedOutside = start >= mLen &&
+                    val.slice(start - mLen, start) === marker &&
+                    val.slice(end, end + mLen) === marker &&
+                    (marker === '**' || (val.slice(start - 2, start) !== '**' && val.slice(end, end + 2) !== '**'));
+
+                if (wrappedOutside) {
+                    newVal = val.slice(0, start - mLen) + selected + val.slice(end + mLen);
+                    selStart = start - mLen;
+                    selEnd = selStart + selected.length;
+                } else {
+                    newVal = val.slice(0, start) + marker + selected + marker + val.slice(end);
+                    selStart = start + mLen;
+                    selEnd = selStart + selected.length;
+                }
+            } else {
+                newVal = val.slice(0, start) + marker + placeholder + marker + val.slice(end);
+                selStart = start + marker.length;
+                selEnd = selStart + placeholder.length;
+            }
+
+            textarea.value = newVal;
+            textarea.focus();
+            textarea.setSelectionRange(selStart, selEnd);
+            updateBlockText(targetKey, blockId, newVal);
+        };
+
+        window.handleBlockTextareaKeydown = function (event, targetKey, blockId) {
+            if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+            const key = (event.key || '').toLowerCase();
+            if (key === 'b') {
+                event.preventDefault();
+                applyTextFormat(targetKey, blockId, 'bold');
+            } else if (key === 'i') {
+                event.preventDefault();
+                applyTextFormat(targetKey, blockId, 'italic');
+            }
+        };
+
+        function formatInlineRichText(rawText) {
+            let html = escapeHtml(rawText || '');
+            html = html.replace(/\*\*\*([^\s*](?:[\s\S]*?[^\s*])?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            html = html.replace(/\*\*([^\s*](?:[\s\S]*?[^\s*])?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/(?<!\*)\*([^\s*](?:[^*\n]*?[^\s*])?)\*(?!\*)/g, '<em>$1</em>');
+            return html;
+        }
+
         window.togglePhotoLayout = function (targetKey, blockId, layoutType) {
             const blocks = getBlocksArrayForTarget(targetKey);
             if (!blocks) return;
@@ -2692,7 +2755,20 @@
                             </span>
                             ${moveControls}
                         </div>
-                        <textarea rows="4" oninput="updateBlockText('${targetKey}', '${blk.id}', this.value)" placeholder="Redija o texto técnico deste parágrafo..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-800 leading-relaxed focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none">${escapeHtml(blk.text || '')}</textarea>
+                        <div class="flex items-center justify-between gap-2 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
+                            <div class="flex items-center gap-1">
+                                <button type="button" onmousedown="event.preventDefault()" onclick="applyTextFormat('${targetKey}', '${blk.id}', 'bold')" title="Negrito (Ctrl+B)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[11px] font-bold flex items-center gap-1 transition">
+                                    <i class="fa-solid fa-bold text-[10px]"></i>
+                                    <span>Negrito</span>
+                                </button>
+                                <button type="button" onmousedown="event.preventDefault()" onclick="applyTextFormat('${targetKey}', '${blk.id}', 'italic')" title="Itálico (Ctrl+I)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-800 text-[11px] italic flex items-center gap-1 transition">
+                                    <i class="fa-solid fa-italic text-[10px]"></i>
+                                    <span>Itálico</span>
+                                </button>
+                            </div>
+                            <span class="text-[10px] text-slate-400 hidden sm:inline">Selecione o texto ou use Ctrl+B / Ctrl+I</span>
+                        </div>
+                        <textarea id="txt-blk-${blk.id}" rows="4" oninput="updateBlockText('${targetKey}', '${blk.id}', this.value)" onkeydown="handleBlockTextareaKeydown(event, '${targetKey}', '${blk.id}')" placeholder="Redija o texto técnico deste parágrafo..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-800 leading-relaxed focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none">${escapeHtml(blk.text || '')}</textarea>
                         <div class="flex items-center justify-end gap-1.5">
                             ${hasUndo ? `
                                 <button type="button" onclick="undoBlockTextAI('${targetKey}', '${blk.id}')" class="px-2.5 py-1 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-bold flex items-center gap-1 transition">
@@ -3458,8 +3534,12 @@
                     </div>
                 ` : '';
 
+                const imgStyle = fitMode === 'cover'
+                    ? 'width:100%; height:100%; object-fit:cover; display:block;'
+                    : 'max-width:100%; max-height:100%; width:auto; height:auto; display:block;';
+
                 const innerContent = slot.imageUrl
-                    ? `<img src="${slot.imageUrl}" alt="Figura ${figNumber}" style="width:100%; height:100%; object-fit:${fitMode}; display:block;">${boxHTML}`
+                    ? `<img src="${slot.imageUrl}" data-fit-mode="${fitMode}" alt="Figura ${figNumber}" style="${imgStyle}">${boxHTML}`
                     : `<div onclick="triggerPhotoUpload('${targetKey}', '${blk.id}', ${slotIdx})" style="cursor:pointer; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#64748b; background:#f8fafc;">
                             <i class="fa-regular fa-image" style="font-size:20px; color:#94a3b8; margin-bottom:4px;"></i>
                             <span style="font-size:8.5pt; font-weight:700;">Clique para inserir a Figura ${figNumber}</span>
@@ -3467,7 +3547,7 @@
 
                 return `
                     <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center;">
-                        <div class="photo-slot-frame" data-slot-frame="1" style="position:relative; width:100%; height:${frameHeight}px; border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff;">
+                        <div class="photo-slot-frame" data-slot-frame="1" style="position:relative; width:100%; height:${frameHeight}px; border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff; display:flex; align-items:center; justify-content:center;">
                             ${innerContent}
                         </div>
                         <div class="doc-caption">Figura ${figNumber} - ${captionClean}</div>
@@ -3543,7 +3623,7 @@
                         if (currentUnits + pUnits > MAX_PAGE_UNITS && currentPageElements.length > 0) {
                             pushCurrentPage();
                         }
-                        const safeText = escapeHtml((blk.text || '').trim());
+                        const safeText = formatInlineRichText((blk.text || '').trim());
                         if (safeText) {
                             currentPageElements.push(`<p class="doc-paragraph">${safeText}</p>`);
                             currentUnits += pUnits;
@@ -4401,6 +4481,53 @@
             };
         }
 
+        function ajustarImagensParaExport(rootEl) {
+            const imgs = Array.from(rootEl.querySelectorAll('.photo-slot-frame img'));
+            const restauracoes = [];
+            imgs.forEach((img) => {
+                const frame = img.closest('.photo-slot-frame');
+                const nw = img.naturalWidth;
+                const nh = img.naturalHeight;
+                if (!frame || !nw || !nh) return;
+                const fw = frame.clientWidth;
+                const fh = frame.clientHeight;
+                if (!fw || !fh) return;
+
+                const prevCss = img.getAttribute('style') || '';
+                const mode = img.getAttribute('data-fit-mode') === 'cover' ? 'cover' : 'contain';
+
+                if (mode === 'cover') {
+                    const ratio = Math.max(fw / nw, fh / nh);
+                    const w = nw * ratio;
+                    const h = nh * ratio;
+                    const left = (fw - w) / 2;
+                    const top = (fh - h) / 2;
+                    img.style.position = 'absolute';
+                    img.style.left = `${left}px`;
+                    img.style.top = `${top}px`;
+                    img.style.width = `${w}px`;
+                    img.style.height = `${h}px`;
+                    img.style.maxWidth = 'none';
+                    img.style.maxHeight = 'none';
+                    img.style.objectFit = 'fill';
+                } else {
+                    const ratio = Math.min(1, fw / nw, fh / nh);
+                    const w = nw * ratio;
+                    const h = nh * ratio;
+                    img.style.width = `${w}px`;
+                    img.style.height = `${h}px`;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '100%';
+                    img.style.objectFit = 'fill';
+                }
+
+                restauracoes.push(() => {
+                    img.setAttribute('style', prevCss);
+                });
+            });
+            return () => restauracoes.forEach((fn) => fn());
+        }
+
         async function gerarPdfDocumento({ scale = 3.5, onProgress = null } = {}) {
             const pagesContainer = document.getElementById('a4-pages-container');
             if (!pagesContainer) throw new Error('Container A4 não encontrado.');
@@ -4411,6 +4538,7 @@
             const prevTransform = pagesContainer.style.transform;
             const prevMarginBottom = pagesContainer.style.marginBottom;
             let restoreSVGs = null;
+            let restoreImages = null;
             const handles = Array.from(pagesContainer.querySelectorAll('.inspection-box-handle'));
 
             try {
@@ -4419,6 +4547,7 @@
                 handles.forEach((h) => { h.style.display = 'none'; });
 
                 restoreSVGs = await rasterizeInlineSVGsForExport(pagesContainer);
+                restoreImages = ajustarImagensParaExport(pagesContainer);
 
                 const sheets = Array.from(pagesContainer.querySelectorAll('.a4-sheet'));
                 const { jsPDF } = window.jspdf;
@@ -4448,6 +4577,7 @@
                 const base64Pdf = dataUri.substring(dataUri.indexOf(',') + 1);
                 return { pdf, base64Pdf };
             } finally {
+                if (typeof restoreImages === 'function') restoreImages();
                 if (typeof restoreSVGs === 'function') restoreSVGs();
                 handles.forEach((h) => { h.style.display = ''; });
                 pagesContainer.style.transform = prevTransform;
