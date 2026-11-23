@@ -2515,6 +2515,10 @@
             const blk = blocks.find((b) => b.id === blockId);
             if (blk) {
                 blk.sizePreset = preset;
+                if (Array.isArray(blk.slots)) {
+                    blk.slots.forEach((s) => { if (s) delete s.sizePreset; });
+                }
+                renderAllBlockEditors();
                 renderA4Document();
             }
         };
@@ -2525,7 +2529,40 @@
             const blk = blocks.find((b) => b.id === blockId);
             if (blk) {
                 blk.fitMode = mode;
+                if (Array.isArray(blk.slots)) {
+                    blk.slots.forEach((s) => { if (s) delete s.fitMode; });
+                }
                 renderAllBlockEditors();
+                renderA4Document();
+            }
+        };
+
+        window.updatePhotoSlotSizePreset = function (targetKey, blockId, slotIndex, preset) {
+            const blocks = getBlocksArrayForTarget(targetKey);
+            if (!blocks) return;
+            const blk = blocks.find((b) => b.id === blockId);
+            if (blk && blk.slots && blk.slots[slotIndex]) {
+                blk.slots[slotIndex].sizePreset = preset;
+                renderA4Document();
+            }
+        };
+
+        window.updatePhotoSlotFitMode = function (targetKey, blockId, slotIndex, mode) {
+            const blocks = getBlocksArrayForTarget(targetKey);
+            if (!blocks) return;
+            const blk = blocks.find((b) => b.id === blockId);
+            if (blk && blk.slots && blk.slots[slotIndex]) {
+                blk.slots[slotIndex].fitMode = mode;
+                renderA4Document();
+            }
+        };
+
+        window.updatePhotoSlotWidthWeight = function (targetKey, blockId, slotIndex, weight) {
+            const blocks = getBlocksArrayForTarget(targetKey);
+            if (!blocks) return;
+            const blk = blocks.find((b) => b.id === blockId);
+            if (blk && blk.slots && blk.slots[slotIndex]) {
+                blk.slots[slotIndex].widthWeight = parseFloat(weight) || 1;
                 renderA4Document();
             }
         };
@@ -2796,6 +2833,9 @@
                 const slot = (blk.slots && blk.slots[s]) || { imageUrl: '', caption: '', box: { active: false, x: 30, y: 25, w: 35, h: 25 } };
                 const hasPhoto = Boolean(slot.imageUrl);
                 const boxActive = Boolean(slot.box?.active);
+                const slotSize = slot.sizePreset || sizePreset;
+                const slotFit = slot.fitMode || fitMode;
+                const slotWeight = String(slot.widthWeight || '1');
 
                 slotsHTML += `
                     <div class="rounded-lg border border-slate-200 bg-slate-50 p-2.5 space-y-2">
@@ -2829,6 +2869,37 @@
                                 </div>
                             `}
                         </div>
+
+                        ${isDouble ? `
+                            <div class="grid grid-cols-3 gap-1.5 bg-white p-1.5 rounded border border-slate-200">
+                                <div>
+                                    <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Altura</label>
+                                    <select onchange="updatePhotoSlotSizePreset('${targetKey}', '${blk.id}', ${s}, this.value)" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-700 outline-none">
+                                        <option value="compact" ${slotSize === 'compact' ? 'selected' : ''}>Compacta</option>
+                                        <option value="medium" ${slotSize === 'medium' ? 'selected' : ''}>Média</option>
+                                        <option value="standard" ${slotSize === 'standard' ? 'selected' : ''}>Padrão</option>
+                                        <option value="large" ${slotSize === 'large' ? 'selected' : ''}>Grande</option>
+                                        <option value="xlarge" ${slotSize === 'xlarge' ? 'selected' : ''}>Extra G.</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Enquadramento</label>
+                                    <select onchange="updatePhotoSlotFitMode('${targetKey}', '${blk.id}', ${s}, this.value)" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-700 outline-none">
+                                        <option value="contain" ${slotFit === 'contain' ? 'selected' : ''}>Sem Corte</option>
+                                        <option value="cover" ${slotFit === 'cover' ? 'selected' : ''}>Preencher</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Largura</label>
+                                    <select onchange="updatePhotoSlotWidthWeight('${targetKey}', '${blk.id}', ${s}, this.value)" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-700 outline-none">
+                                        <option value="0.65" ${slotWeight === '0.65' ? 'selected' : ''}>Estreita</option>
+                                        <option value="1" ${slotWeight === '1' ? 'selected' : ''}>Padrão</option>
+                                        <option value="1.4" ${slotWeight === '1.4' ? 'selected' : ''}>Larga</option>
+                                        <option value="1.8" ${slotWeight === '1.8' ? 'selected' : ''}>Bem Larga</option>
+                                    </select>
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <div>
                             <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Legenda da Figura</label>
@@ -3515,11 +3586,12 @@
 
         function buildPhotoBlockHTML(targetKey, blk, startingFigNum) {
             const isDouble = blk.type === 'photo-double';
-            const frameHeight = getPhotoFrameHeightPx(blk.sizePreset);
-            const fitMode = blk.fitMode === 'cover' ? 'cover' : 'contain';
 
             const renderSlot = (slotIdx, figNumber) => {
                 const slot = (blk.slots && blk.slots[slotIdx]) || { imageUrl: '', caption: '', box: { active: false } };
+                const frameHeight = getPhotoFrameHeightPx(slot.sizePreset || blk.sizePreset);
+                const fitMode = (slot.fitMode || blk.fitMode) === 'cover' ? 'cover' : 'contain';
+                const widthWeight = isDouble ? (Number(slot.widthWeight) || 1) : 1;
                 const captionClean = escapeHtml((slot.caption || '').trim() || 'Registro fotográfico');
                 const box = slot.box || { active: false, x: 30, y: 25, w: 35, h: 25 };
 
@@ -3546,7 +3618,7 @@
                        </div>`;
 
                 return `
-                    <div style="flex:1; min-width:0; display:flex; flex-direction:column; align-items:center;">
+                    <div style="flex:${widthWeight} 1 0%; min-width:0; display:flex; flex-direction:column; align-items:center;">
                         <div class="photo-slot-frame" data-slot-frame="1" style="position:relative; width:100%; height:${frameHeight}px; border:1px solid #cbd5e1; border-radius:4px; overflow:hidden; background:#ffffff; display:flex; align-items:center; justify-content:center;">
                             ${innerContent}
                         </div>
@@ -3629,7 +3701,12 @@
                             currentUnits += pUnits;
                         }
                     } else if (allowPhotos) {
-                        const frameH = getPhotoFrameHeightPx(blk.sizePreset);
+                        const frameH = blk.type === 'photo-double' && Array.isArray(blk.slots)
+                            ? Math.max(
+                                getPhotoFrameHeightPx((blk.slots[0] && blk.slots[0].sizePreset) || blk.sizePreset),
+                                getPhotoFrameHeightPx((blk.slots[1] && blk.slots[1].sizePreset) || blk.sizePreset)
+                            )
+                            : getPhotoFrameHeightPx(blk.sizePreset);
                         const photoUnits = frameH + 46;
                         if (currentUnits + photoUnits > MAX_PAGE_UNITS && currentPageElements.length > 0) {
                             pushCurrentPage();
