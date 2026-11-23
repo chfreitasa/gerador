@@ -1192,7 +1192,171 @@
             }
         })();
 
+        let rascunhoAlterado = false;
+        let suprimirAutoSaveRascunho = false;
+        let timerAutoSaveRascunho = null;
+
+        function chaveRascunhoLocal() {
+            const login = (typeof loginAtual === 'function' ? loginAtual() : '') || sessionStorage.getItem('etb_login') || 'anon';
+            return `alupar_rel_rascunho_v1_${login}`;
+        }
+
+        function documentoTemConteudoParaRascunho(doc) {
+            if (!doc || typeof doc !== 'object') return false;
+            if ((doc.title || '').trim() || (doc.ss || '').trim() || (doc.os || '').trim() ||
+                (doc.bayLocation || '').trim() || (doc.manufacturerModel || '').trim() ||
+                (doc.serialNumber || '').trim() || (doc.reviewer || '').trim()) {
+                return true;
+            }
+            if (Array.isArray(doc.extraTopics) && doc.extraTopics.length > 0) return true;
+            const temConteudoBloco = (blocos) => Array.isArray(blocos) && blocos.some(b => {
+                if (!b) return false;
+                if ((b.text || '').trim() || (b.image || '').trim()) return true;
+                if (Array.isArray(b.images) && b.images.some(img => !!img)) return true;
+                if (Array.isArray(b.slots) && b.slots.some(s => s && (s.image || (s.caption || '').trim()))) return true;
+                return false;
+            });
+            return temConteudoBloco(doc.resumoBlocks) || temConteudoBloco(doc.conclusaoBlocks);
+        }
+
+        function removerBase64PesadoRascunho(doc) {
+            const copia = JSON.parse(JSON.stringify(doc));
+            const limparBlocos = (blocos) => {
+                if (!Array.isArray(blocos)) return;
+                blocos.forEach(b => {
+                    if (!b) return;
+                    if (typeof b.image === 'string' && b.image.startsWith('data:')) b.image = '';
+                    if (Array.isArray(b.images)) b.images = b.images.map(img => (typeof img === 'string' && img.startsWith('data:')) ? '' : img);
+                    if (Array.isArray(b.slots)) {
+                        b.slots.forEach(s => {
+                            if (s && typeof s.image === 'string' && s.image.startsWith('data:')) s.image = '';
+                        });
+                    }
+                });
+            };
+            limparBlocos(copia.resumoBlocks);
+            limparBlocos(copia.conclusaoBlocks);
+            if (Array.isArray(copia.extraTopics)) {
+                copia.extraTopics.forEach(t => limparBlocos(t && t.blocks));
+            }
+            return copia;
+        }
+
+        function salvarRascunhoLocalAgora() {
+            if (!rascunhoAlterado) return;
+            if (currentReport && currentReport.id && typeof podeEditarOuExcluirRelatorio === 'function' && !podeEditarOuExcluirRelatorio(currentReport)) {
+                return;
+            }
+            if (!documentoTemConteudoParaRascunho(currentReport)) {
+                limparRascunhoLocal();
+                return;
+            }
+            const pacote = {
+                savedAt: new Date().toISOString(),
+                report: currentReport
+            };
+            try {
+                localStorage.setItem(chaveRascunhoLocal(), JSON.stringify(pacote));
+            } catch (_) {
+                try {
+                    const pacoteLeve = {
+                        savedAt: pacote.savedAt,
+                        semFotosLocais: true,
+                        report: removerBase64PesadoRascunho(currentReport)
+                    };
+                    localStorage.setItem(chaveRascunhoLocal(), JSON.stringify(pacoteLeve));
+                } catch (__) { }
+            }
+        }
+
+        function agendarAutoSaveRascunho() {
+            if (suprimirAutoSaveRascunho) return;
+            if (currentReport && currentReport.id && typeof podeEditarOuExcluirRelatorio === 'function' && !podeEditarOuExcluirRelatorio(currentReport)) {
+                return;
+            }
+            rascunhoAlterado = true;
+            clearTimeout(timerAutoSaveRascunho);
+            timerAutoSaveRascunho = setTimeout(salvarRascunhoLocalAgora, 600);
+        }
+
+        function limparRascunhoLocal() {
+            rascunhoAlterado = false;
+            clearTimeout(timerAutoSaveRascunho);
+            try { localStorage.removeItem(chaveRascunhoLocal()); } catch (_) { }
+        }
+
+        function restaurarRascunhoLocalSeExistir() {
+            let bruto = '';
+            try { bruto = localStorage.getItem(chaveRascunhoLocal()) || ''; } catch (_) { return false; }
+            if (!bruto) return false;
+            let pacote = null;
+            try { pacote = JSON.parse(bruto); } catch (_) { return false; }
+            const r = pacote && pacote.report;
+            if (!r || !documentoTemConteudoParaRascunho(r)) {
+                limparRascunhoLocal();
+                return false;
+            }
+
+            const base = createDefaultTemplate();
+            suprimirAutoSaveRascunho = true;
+            try {
+                currentReport = {
+                    ...base,
+                    ...r,
+                    docType: r.docType === 'REL' ? 'REL' : 'NI',
+                    year: Number(r.year) || new Date().getFullYear(),
+                    seqNumber: Number(r.seqNumber) || 1,
+                    resumoBlocks: Array.isArray(r.resumoBlocks) && r.resumoBlocks.length ? r.resumoBlocks : base.resumoBlocks,
+                    extraTopics: Array.isArray(r.extraTopics) ? r.extraTopics : [],
+                    conclusaoBlocks: Array.isArray(r.conclusaoBlocks) && r.conclusaoBlocks.length ? r.conclusaoBlocks : base.conclusaoBlocks
+                };
+                if (!currentReport.id && !currentReport.manualSeqOverride) {
+                    currentReport.seqNumber = getNextAvailableSeq(currentReport.docType, currentReport.year);
+                }
+                titlePrevText = '';
+                syncFormInputsFromState();
+                renderAllBlockEditors();
+                renderA4Document();
+                updateEditingModeBanner();
+                updateNextAvailableNumberUI();
+            } finally {
+                suprimirAutoSaveRascunho = false;
+            }
+
+            rascunhoAlterado = true;
+            let horaStr = '';
+            try {
+                if (pacote.savedAt) {
+                    horaStr = new Date(pacote.savedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+            } catch (_) { }
+            const avisoFotos = pacote.semFotosLocais ? ' (textos restaurados)' : '';
+            showToast(`Rascunho não salvo restaurado automaticamente${horaStr ? ' (' + horaStr + ')' : ''}${avisoFotos}. Clique em "Salvar no Repositório" para concluir ou "Novo" para descartar.`, 'warning');
+            return true;
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            if (!rascunhoAlterado) return;
+            salvarRascunhoLocalAgora();
+            e.preventDefault();
+            e.returnValue = '';
+        });
+        window.addEventListener('pagehide', () => {
+            if (rascunhoAlterado) salvarRascunhoLocalAgora();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && rascunhoAlterado) {
+                salvarRascunhoLocalAgora();
+            }
+        });
+
         function voltarAoPortal() {
+            if (rascunhoAlterado) {
+                salvarRascunhoLocalAgora();
+                const sair = confirm('Você possui alterações ainda não salvas no repositório. Seu rascunho foi salvo automaticamente neste navegador.\n\nDeseja realmente sair para o portal?');
+                if (!sair) return;
+                rascunhoAlterado = false;
+            }
             location.href = 'index.html#portal';
         }
         window.voltarAoPortal = voltarAoPortal;
@@ -1513,13 +1677,19 @@
                 } catch (_) { yearCountersMap = {}; }
                 definirStatusBanco(false, 'URL do Worker não configurada');
                 remontarRepositorio();
-                if (!currentReport.id && !currentReport.manualSeqOverride) {
-                    currentReport.seqNumber = getNextAvailableSeq(currentReport.docType, currentReport.year);
+                suprimirAutoSaveRascunho = true;
+                try {
+                    if (!currentReport.id && !currentReport.manualSeqOverride) {
+                        currentReport.seqNumber = getNextAvailableSeq(currentReport.docType, currentReport.year);
+                    }
+                    syncFormInputsFromState();
+                    renderA4Document();
+                    updateNextAvailableNumberUI();
+                    updateRepoBadgeCount();
+                } finally {
+                    suprimirAutoSaveRascunho = false;
                 }
-                syncFormInputsFromState();
-                renderA4Document();
-                updateNextAvailableNumberUI();
-                updateRepoBadgeCount();
+                if (!rascunhoAlterado) restaurarRascunhoLocalSeExistir();
                 return;
             }
 
@@ -1550,14 +1720,22 @@
             }
 
             remontarRepositorio();
-            if (!currentReport.id && !currentReport.sector) {
-                currentReport.sector = setorUsuarioAtual();
+            if (!rascunhoAlterado) {
+                suprimirAutoSaveRascunho = true;
+                try {
+                    if (!currentReport.id && !currentReport.sector) {
+                        currentReport.sector = setorUsuarioAtual();
+                    }
+                    if (!currentReport.id && !currentReport.manualSeqOverride) {
+                        currentReport.seqNumber = getNextAvailableSeq(currentReport.docType, currentReport.year);
+                    }
+                    syncFormInputsFromState();
+                    renderA4Document();
+                } finally {
+                    suprimirAutoSaveRascunho = false;
+                }
+                restaurarRascunhoLocalSeExistir();
             }
-            if (!currentReport.id && !currentReport.manualSeqOverride) {
-                currentReport.seqNumber = getNextAvailableSeq(currentReport.docType, currentReport.year);
-            }
-            syncFormInputsFromState();
-            renderA4Document();
             updateNextAvailableNumberUI();
             updateRepoBadgeCount();
             renderRepositoryList();
@@ -3426,6 +3604,7 @@
             }
 
             applyPreviewZoomTransform();
+            agendarAutoSaveRascunho();
         }
 
         // =========================================================================
@@ -3581,6 +3760,9 @@
         }
 
         window.startNewReport = function () {
+            if (rascunhoAlterado && !confirm('Você possui um rascunho ainda não salvo no repositório. Deseja descartá-lo e iniciar um novo documento?')) {
+                return;
+            }
             const fresh = createDefaultTemplate();
             fresh.id = null;
             fresh.docType = currentReport.docType || 'NI';
@@ -3615,13 +3797,19 @@
                 }
             ];
 
-            currentReport = fresh;
-            titlePrevText = '';
-            syncFormInputsFromState();
-            renderAllBlockEditors();
-            switchEditorTab('dados');
-            renderA4Document();
-            updateEditingModeBanner();
+            suprimirAutoSaveRascunho = true;
+            try {
+                currentReport = fresh;
+                titlePrevText = '';
+                syncFormInputsFromState();
+                renderAllBlockEditors();
+                switchEditorTab('dados');
+                renderA4Document();
+                updateEditingModeBanner();
+            } finally {
+                suprimirAutoSaveRascunho = false;
+            }
+            limparRascunhoLocal();
             showToast(`Novo documento iniciado (${formatDocumentCode(fresh.docType, fresh.year, fresh.seqNumber)}).`, 'info');
         };
 
@@ -3769,9 +3957,15 @@
                 updateRepoBadgeCount();
                 updateNextAvailableNumberUI();
 
-                syncFormInputsFromState();
-                renderA4Document();
-                updateEditingModeBanner();
+                suprimirAutoSaveRascunho = true;
+                try {
+                    syncFormInputsFromState();
+                    renderA4Document();
+                    updateEditingModeBanner();
+                } finally {
+                    suprimirAutoSaveRascunho = false;
+                }
+                limparRascunhoLocal();
                 showToast(docOficialServidor
                     ? `Documento ${officialCode} salvo no banco de dados da equipe com sucesso!`
                     : `Documento ${officialCode} salvo localmente (banco indisponível).`, 'success');
@@ -3921,28 +4115,37 @@
                 showToast('Documento não encontrado no repositório.', 'error');
                 return;
             }
+            if (rascunhoAlterado && !confirm('Você possui um rascunho ainda não salvo no repositório. Deseja descartá-lo e abrir este documento?')) {
+                return;
+            }
 
             const base = createDefaultTemplate();
             const cloned = JSON.parse(JSON.stringify(found));
-            currentReport = {
-                ...base,
-                ...cloned,
-                id: found.id,
-                docType: cloned.docType === 'REL' ? 'REL' : 'NI',
-                year: Number(cloned.year) || 2026,
-                seqNumber: Number(cloned.seqNumber) || 1,
-                manualSeqOverride: true,
-                resumoBlocks: Array.isArray(cloned.resumoBlocks) ? cloned.resumoBlocks : base.resumoBlocks,
-                extraTopics: Array.isArray(cloned.extraTopics) ? cloned.extraTopics : [],
-                conclusaoBlocks: Array.isArray(cloned.conclusaoBlocks) ? cloned.conclusaoBlocks : base.conclusaoBlocks
-            };
+            suprimirAutoSaveRascunho = true;
+            try {
+                currentReport = {
+                    ...base,
+                    ...cloned,
+                    id: found.id,
+                    docType: cloned.docType === 'REL' ? 'REL' : 'NI',
+                    year: Number(cloned.year) || 2026,
+                    seqNumber: Number(cloned.seqNumber) || 1,
+                    manualSeqOverride: true,
+                    resumoBlocks: Array.isArray(cloned.resumoBlocks) ? cloned.resumoBlocks : base.resumoBlocks,
+                    extraTopics: Array.isArray(cloned.extraTopics) ? cloned.extraTopics : [],
+                    conclusaoBlocks: Array.isArray(cloned.conclusaoBlocks) ? cloned.conclusaoBlocks : base.conclusaoBlocks
+                };
 
-            titlePrevText = '';
-            syncFormInputsFromState();
-            renderAllBlockEditors();
-            switchEditorTab('dados');
-            renderA4Document();
-            updateEditingModeBanner();
+                titlePrevText = '';
+                syncFormInputsFromState();
+                renderAllBlockEditors();
+                switchEditorTab('dados');
+                renderA4Document();
+                updateEditingModeBanner();
+            } finally {
+                suprimirAutoSaveRascunho = false;
+            }
+            limparRascunhoLocal();
 
             // Fotos do Google Drive: preenche os espaços vazios a partir do mapa
             // de IDs do documento (o navegador que emitiu já as tem localmente).
@@ -4373,11 +4576,16 @@
         // =========================================================================
         // 15. APPLICATION BOOTSTRAP
         // =========================================================================
-        syncFormInputsFromState();
-        renderAllBlockEditors();
-        renderA4Document();
-        updateEditingModeBanner();
-        updateNextAvailableNumberUI();
+        suprimirAutoSaveRascunho = true;
+        try {
+            syncFormInputsFromState();
+            renderAllBlockEditors();
+            renderA4Document();
+            updateEditingModeBanner();
+            updateNextAvailableNumberUI();
+        } finally {
+            suprimirAutoSaveRascunho = false;
+        }
         iniciarRepositorio();
         atualizarLogoTopbarAlupar();
         testarDrive();
