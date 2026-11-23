@@ -61,6 +61,26 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        .rich-editor-box {
+            min-height: 92px;
+            max-height: 260px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .rich-editor-box:empty:before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+        .rich-editor-box b,
+        .rich-editor-box strong {
+            font-weight: 700;
+        }
+        .rich-editor-box i,
+        .rich-editor-box em {
+            font-style: italic;
+        }
 
         /* A4 Page Geometry & Typography */
         .a4-sheet {
@@ -2436,47 +2456,71 @@
             }
         };
 
-        window.applyTextFormat = function (targetKey, blockId, formatType) {
-            const textarea = document.getElementById(`txt-blk-${blockId}`);
-            if (!textarea) return;
+        function domNodeParaTextoFormatado(node) {
+            if (!node) return '';
+            if (node.nodeType === Node.TEXT_NODE) return node.nodeValue || '';
+            if (node.nodeType !== Node.ELEMENT_NODE) return '';
+            const tag = node.tagName.toLowerCase();
+            if (tag === 'br') return '\n';
 
-            const marker = formatType === 'bold' ? '**' : '*';
-            const placeholder = formatType === 'bold' ? 'texto em negrito' : 'texto em itálico';
-            const val = textarea.value || '';
-            const start = textarea.selectionStart ?? val.length;
-            const end = textarea.selectionEnd ?? val.length;
-            const selected = val.slice(start, end);
-
-            let newVal = '';
-            let selStart = start;
-            let selEnd = end;
-
-            if (selected.length > 0) {
-                const mLen = marker.length;
-                const wrappedOutside = start >= mLen &&
-                    val.slice(start - mLen, start) === marker &&
-                    val.slice(end, end + mLen) === marker &&
-                    (marker === '**' || (val.slice(start - 2, start) !== '**' && val.slice(end, end + 2) !== '**'));
-
-                if (wrappedOutside) {
-                    newVal = val.slice(0, start - mLen) + selected + val.slice(end + mLen);
-                    selStart = start - mLen;
-                    selEnd = selStart + selected.length;
+            let inner = '';
+            const children = Array.from(node.childNodes);
+            for (let i = 0; i < children.length; i++) {
+                const ch = children[i];
+                if (ch.nodeType === Node.ELEMENT_NODE && (ch.tagName === 'DIV' || ch.tagName === 'P')) {
+                    if (inner.length > 0 && !inner.endsWith('\n')) inner += '\n';
+                    const sub = domNodeParaTextoFormatado(ch);
+                    inner += sub;
+                    if (!inner.endsWith('\n') && i < children.length - 1) inner += '\n';
                 } else {
-                    newVal = val.slice(0, start) + marker + selected + marker + val.slice(end);
-                    selStart = start + mLen;
-                    selEnd = selStart + selected.length;
+                    inner += domNodeParaTextoFormatado(ch);
                 }
-            } else {
-                newVal = val.slice(0, start) + marker + placeholder + marker + val.slice(end);
-                selStart = start + marker.length;
-                selEnd = selStart + placeholder.length;
             }
 
-            textarea.value = newVal;
-            textarea.focus();
-            textarea.setSelectionRange(selStart, selEnd);
-            updateBlockText(targetKey, blockId, newVal);
+            const fw = (node.style && node.style.fontWeight) ? String(node.style.fontWeight).toLowerCase() : '';
+            const fs = (node.style && node.style.fontStyle) ? String(node.style.fontStyle).toLowerCase() : '';
+            const isBold = tag === 'b' || tag === 'strong' || fw === 'bold' || Number(fw) >= 600;
+            const isItalic = tag === 'i' || tag === 'em' || fs === 'italic';
+
+            if (isBold && isItalic && inner.trim()) return `***${inner}***`;
+            if (isBold && inner.trim()) return `**${inner}**`;
+            if (isItalic && inner.trim()) return `*${inner}*`;
+            return inner;
+        }
+
+        window.syncBlockRichText = function (targetKey, blockId) {
+            const editor = document.getElementById(`txt-blk-${blockId}`);
+            if (!editor) return;
+            const plain = domNodeParaTextoFormatado(editor).replace(/\u00A0/g, ' ');
+            if (!editor.textContent && !editor.querySelector('br')) {
+                editor.innerHTML = '';
+            }
+            updateBlockText(targetKey, blockId, plain);
+        };
+
+        window.handleRichPaste = function (event, targetKey, blockId) {
+            event.preventDefault();
+            const text = (event.clipboardData || window.clipboardData)?.getData('text/plain') || '';
+            if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+                document.execCommand('insertText', false, text);
+            } else {
+                const sel = window.getSelection();
+                if (sel && sel.rangeCount) {
+                    const range = sel.getRangeAt(0);
+                    range.deleteContents();
+                    range.insertNode(document.createTextNode(text));
+                    range.collapse(false);
+                }
+            }
+            syncBlockRichText(targetKey, blockId);
+        };
+
+        window.applyTextFormat = function (targetKey, blockId, formatType) {
+            const editor = document.getElementById(`txt-blk-${blockId}`);
+            if (!editor) return;
+            editor.focus();
+            document.execCommand(formatType === 'bold' ? 'bold' : 'italic', false, null);
+            syncBlockRichText(targetKey, blockId);
         };
 
         window.handleBlockTextareaKeydown = function (event, targetKey, blockId) {
@@ -2805,7 +2849,7 @@
                             </div>
                             <span class="text-[10px] text-slate-400 hidden sm:inline">Selecione o texto ou use Ctrl+B / Ctrl+I</span>
                         </div>
-                        <textarea id="txt-blk-${blk.id}" rows="4" oninput="updateBlockText('${targetKey}', '${blk.id}', this.value)" onkeydown="handleBlockTextareaKeydown(event, '${targetKey}', '${blk.id}')" placeholder="Redija o texto técnico deste parágrafo..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-800 leading-relaxed focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none">${escapeHtml(blk.text || '')}</textarea>
+                        <div id="txt-blk-${blk.id}" contenteditable="true" data-placeholder="Redija o texto técnico deste parágrafo..." oninput="syncBlockRichText('${targetKey}', '${blk.id}')" onkeydown="handleBlockTextareaKeydown(event, '${targetKey}', '${blk.id}')" onpaste="handleRichPaste(event, '${targetKey}', '${blk.id}')" class="rich-editor-box w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-800 leading-relaxed focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 outline-none bg-white">${blk.text ? formatInlineRichText(blk.text).replace(/\n/g, '<br>') : ''}</div>
                         <div class="flex items-center justify-end gap-1.5">
                             ${hasUndo ? `
                                 <button type="button" onclick="undoBlockTextAI('${targetKey}', '${blk.id}')" class="px-2.5 py-1 rounded-md bg-slate-200 hover:bg-slate-300 text-slate-700 text-[10px] font-bold flex items-center gap-1 transition">
