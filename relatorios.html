@@ -2562,7 +2562,6 @@
                 if (Array.isArray(blk.slots)) {
                     blk.slots.forEach((s) => { if (s) delete s.sizePreset; });
                 }
-                renderAllBlockEditors();
                 renderA4Document();
             }
         };
@@ -2915,17 +2914,7 @@
                         </div>
 
                         ${isDouble ? `
-                            <div class="grid grid-cols-3 gap-1.5 bg-white p-1.5 rounded border border-slate-200">
-                                <div>
-                                    <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Altura</label>
-                                    <select onchange="updatePhotoSlotSizePreset('${targetKey}', '${blk.id}', ${s}, this.value)" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-700 outline-none">
-                                        <option value="compact" ${slotSize === 'compact' ? 'selected' : ''}>Compacta</option>
-                                        <option value="medium" ${slotSize === 'medium' ? 'selected' : ''}>Média</option>
-                                        <option value="standard" ${slotSize === 'standard' ? 'selected' : ''}>Padrão</option>
-                                        <option value="large" ${slotSize === 'large' ? 'selected' : ''}>Grande</option>
-                                        <option value="xlarge" ${slotSize === 'xlarge' ? 'selected' : ''}>Extra G.</option>
-                                    </select>
-                                </div>
+                            <div class="grid grid-cols-2 gap-1.5 bg-white p-1.5 rounded border border-slate-200">
                                 <div>
                                     <label class="block text-[9px] font-bold uppercase text-slate-500 mb-0.5">Enquadramento</label>
                                     <select onchange="updatePhotoSlotFitMode('${targetKey}', '${blk.id}', ${s}, this.value)" class="w-full rounded border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-700 outline-none">
@@ -3630,10 +3619,10 @@
 
         function buildPhotoBlockHTML(targetKey, blk, startingFigNum) {
             const isDouble = blk.type === 'photo-double';
+            const frameHeight = getPhotoFrameHeightPx(blk.sizePreset);
 
             const renderSlot = (slotIdx, figNumber) => {
                 const slot = (blk.slots && blk.slots[slotIdx]) || { imageUrl: '', caption: '', box: { active: false } };
-                const frameHeight = getPhotoFrameHeightPx(slot.sizePreset || blk.sizePreset);
                 const fitMode = (slot.fitMode || blk.fitMode) === 'cover' ? 'cover' : 'contain';
                 const widthWeight = isDouble ? (Number(slot.widthWeight) || 1) : 1;
                 const captionClean = escapeHtml((slot.caption || '').trim() || 'Registro fotográfico');
@@ -3745,12 +3734,7 @@
                             currentUnits += pUnits;
                         }
                     } else if (allowPhotos) {
-                        const frameH = blk.type === 'photo-double' && Array.isArray(blk.slots)
-                            ? Math.max(
-                                getPhotoFrameHeightPx((blk.slots[0] && blk.slots[0].sizePreset) || blk.sizePreset),
-                                getPhotoFrameHeightPx((blk.slots[1] && blk.slots[1].sizePreset) || blk.sizePreset)
-                            )
-                            : getPhotoFrameHeightPx(blk.sizePreset);
+                        const frameH = getPhotoFrameHeightPx(blk.sizePreset);
                         const photoUnits = frameH + 46;
                         if (currentUnits + photoUnits > MAX_PAGE_UNITS && currentPageElements.length > 0) {
                             pushCurrentPage();
