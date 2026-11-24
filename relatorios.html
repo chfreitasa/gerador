@@ -3683,7 +3683,7 @@
             const linhas = semMarcacao.split('\n');
             let total = 0;
             for (const ln of linhas) {
-                total += Math.max(1, Math.ceil(ln.length / 94));
+                total += Math.max(1, Math.ceil(ln.length / 98));
             }
             return Math.max(1, total);
         }
@@ -3705,7 +3705,7 @@
 
             for (; idxLinha < linhasOriginais.length; idxLinha++) {
                 const ln = linhasOriginais[idxLinha];
-                const custoLn = Math.max(1, Math.ceil(ln.replace(/\*+/g, '').length / 94));
+                const custoLn = Math.max(1, Math.ceil(ln.replace(/\*+/g, '').length / 98));
                 if (linhasUsadas + custoLn <= maxLinhas) {
                     aceitas.push(ln);
                     linhasUsadas += custoLn;
@@ -3717,7 +3717,7 @@
                         let k = 0;
                         for (; k < palavras.length; k++) {
                             const candidato = parcial + palavras[k];
-                            const custoCand = Math.max(1, Math.ceil(candidato.replace(/\*+/g, '').length / 94));
+                            const custoCand = Math.max(1, Math.ceil(candidato.replace(/\*+/g, '').length / 98));
                             if (custoCand <= linhasLivres) {
                                 parcial = candidato;
                             } else {
@@ -3765,7 +3765,7 @@
             const container = document.getElementById('a4-pages-container');
             if (!container) return;
 
-            const MAX_PAGE_UNITS = 885;
+            const MAX_PAGE_UNITS = 920;
             const pages = [];
             let currentPageElements = [];
             let currentUnits = 0;
@@ -3782,7 +3782,7 @@
             // Section 1: Informações Gerais
             const sec1HTML = buildSection1InfoGeraisHTML();
             const extraRowsCount = ((currentReport.sector || '').trim() ? 1 : 0) + ((currentReport.bayLocation || '').trim() ? 1 : 0) + ((currentReport.manufacturerModel || '').trim() ? 1 : 0);
-            const sec1Units = 165 + extraRowsCount * 28;
+            const sec1Units = 200 + extraRowsCount * 28;
             currentPageElements.push(sec1HTML);
             currentUnits += sec1Units;
 
