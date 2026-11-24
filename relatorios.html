@@ -314,10 +314,16 @@
                         Código único gerado automaticamente por tipo e ano (ex: OM.NI.26001 ou OM.REL.26001)
                     </p>
                 </div>
-                <button type="button" onclick="startNewReport()" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-alupar-navy border border-blue-300 text-[11px] font-bold flex items-center gap-1.5 shadow-2xs transition" title="Iniciar novo relatório em branco">
-                    <i class="fa-solid fa-file-circle-plus text-[#009E0F]"></i>
-                    <span>+ Novo</span>
-                </button>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" id="btn-undo-block-delete" onclick="desfazerExclusaoBloco()" class="hidden px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold flex items-center gap-1.5 shadow-2xs transition" title="Restaurar o último bloco de texto ou foto excluído">
+                        <i class="fa-solid fa-rotate-left text-amber-700"></i>
+                        <span id="btn-undo-block-label">Desfazer</span>
+                    </button>
+                    <button type="button" onclick="startNewReport()" class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-blue-50 text-alupar-navy border border-blue-300 text-[11px] font-bold flex items-center gap-1.5 shadow-2xs transition" title="Iniciar novo relatório em branco">
+                        <i class="fa-solid fa-file-circle-plus text-[#009E0F]"></i>
+                        <span>+ Novo</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Editor Navigation Tabs -->
@@ -2440,11 +2446,92 @@
             renderA4Document();
         };
 
+        let pilhaDesfazerBlocos = [];
+
+        function atualizarBotaoDesfazerBloco() {
+            const btn = document.getElementById('btn-undo-block-delete');
+            const label = document.getElementById('btn-undo-block-label');
+            if (!btn) return;
+            if (pilhaDesfazerBlocos.length > 0) {
+                btn.classList.remove('hidden');
+                if (label) {
+                    label.textContent = pilhaDesfazerBlocos.length > 1
+                        ? `Desfazer (${pilhaDesfazerBlocos.length})`
+                        : 'Desfazer';
+                }
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        function limparPilhaDesfazerBlocos() {
+            pilhaDesfazerBlocos = [];
+            atualizarBotaoDesfazerBloco();
+        }
+
+        function showUndoBlockToast(message) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'pointer-events-auto px-3.5 py-2.5 rounded-xl border shadow-lg text-xs font-semibold flex items-center gap-2.5 transition-all duration-300 bg-slate-900 text-white border-slate-700';
+            toast.innerHTML = `
+                <i class="fa-solid fa-trash-can-arrow-up text-amber-400"></i>
+                <span>${escapeHtml(message)}</span>
+                <button type="button" class="ml-1 px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] transition">Desfazer</button>
+            `;
+            const btnUndo = toast.querySelector('button');
+            if (btnUndo) {
+                btnUndo.addEventListener('click', () => {
+                    desfazerExclusaoBloco();
+                    toast.remove();
+                });
+            }
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (!toast.isConnected) return;
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(6px)';
+                setTimeout(() => toast.remove(), 280);
+            }, 6000);
+        }
+
+        window.desfazerExclusaoBloco = function () {
+            if (!pilhaDesfazerBlocos.length) return;
+            const item = pilhaDesfazerBlocos.pop();
+            const blocks = getBlocksArrayForTarget(item.targetKey);
+            if (!blocks) {
+                atualizarBotaoDesfazerBloco();
+                return;
+            }
+            const pos = Math.max(0, Math.min(item.index, blocks.length));
+            blocks.splice(pos, 0, item.block);
+            atualizarBotaoDesfazerBloco();
+            if (typeof switchEditorTab === 'function') {
+                switchEditorTab(item.targetKey);
+            }
+            renderAllBlockEditors();
+            renderA4Document();
+            showToast('Bloco restaurado com sucesso.', 'success');
+        };
+
         window.removeBlock = function (targetKey, blockId) {
             const blocks = getBlocksArrayForTarget(targetKey);
             if (!blocks) return;
             const idx = blocks.findIndex((b) => b.id === blockId);
-            if (idx >= 0) blocks.splice(idx, 1);
+            if (idx >= 0) {
+                const [removido] = blocks.splice(idx, 1);
+                if (removido) {
+                    pilhaDesfazerBlocos.push({
+                        targetKey,
+                        index: idx,
+                        block: JSON.parse(JSON.stringify(removido))
+                    });
+                    if (pilhaDesfazerBlocos.length > 20) pilhaDesfazerBlocos.shift();
+                    atualizarBotaoDesfazerBloco();
+                    const tipoNome = removido.type === 'paragraph' ? 'Parágrafo removido.' : 'Quadro de foto removido.';
+                    showUndoBlockToast(tipoNome);
+                }
+            }
             renderAllBlockEditors();
             renderA4Document();
         };
@@ -4203,6 +4290,7 @@
                 suprimirAutoSaveRascunho = false;
             }
             limparRascunhoLocal();
+            limparPilhaDesfazerBlocos();
             showToast(`Novo documento iniciado (${formatDocumentCode(fresh.docType, fresh.year, fresh.seqNumber)}).`, 'info');
         };
 
@@ -4559,6 +4647,7 @@
                 suprimirAutoSaveRascunho = false;
             }
             limparRascunhoLocal();
+            limparPilhaDesfazerBlocos();
 
             // Fotos do Google Drive: preenche os espaços vazios a partir do mapa
             // de IDs do documento (o navegador que emitiu já as tem localmente).
