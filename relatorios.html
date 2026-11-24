@@ -3683,15 +3683,15 @@
             const linhas = semMarcacao.split('\n');
             let total = 0;
             for (const ln of linhas) {
-                total += Math.max(1, Math.ceil(ln.length / 78));
+                total += Math.max(1, Math.ceil(ln.length / 94));
             }
             return Math.max(1, total);
         }
 
         function estimateParagraphUnits(text) {
             const clean = (text || '').trim();
-            if (!clean) return 32;
-            return estimarLinhasTexto(clean) * 22 + 12;
+            if (!clean) return 31;
+            return estimarLinhasTexto(clean) * 21 + 10;
         }
 
         function extrairTrechoQueCabe(rawText, maxLinhas) {
@@ -3705,7 +3705,7 @@
 
             for (; idxLinha < linhasOriginais.length; idxLinha++) {
                 const ln = linhasOriginais[idxLinha];
-                const custoLn = Math.max(1, Math.ceil(ln.replace(/\*+/g, '').length / 78));
+                const custoLn = Math.max(1, Math.ceil(ln.replace(/\*+/g, '').length / 94));
                 if (linhasUsadas + custoLn <= maxLinhas) {
                     aceitas.push(ln);
                     linhasUsadas += custoLn;
@@ -3717,7 +3717,7 @@
                         let k = 0;
                         for (; k < palavras.length; k++) {
                             const candidato = parcial + palavras[k];
-                            const custoCand = Math.max(1, Math.ceil(candidato.replace(/\*+/g, '').length / 78));
+                            const custoCand = Math.max(1, Math.ceil(candidato.replace(/\*+/g, '').length / 94));
                             if (custoCand <= linhasLivres) {
                                 parcial = candidato;
                             } else {
@@ -3765,7 +3765,7 @@
             const container = document.getElementById('a4-pages-container');
             if (!container) return;
 
-            const MAX_PAGE_UNITS = 745;
+            const MAX_PAGE_UNITS = 885;
             const pages = [];
             let currentPageElements = [];
             let currentUnits = 0;
@@ -3812,7 +3812,7 @@
                                 }
                                 break;
                             }
-                            const maxLinhas = Math.floor((disponivel - 12) / 22);
+                            const maxLinhas = Math.floor((disponivel - 10) / 21);
                             if (maxLinhas < 2 && currentPageElements.length > 0) {
                                 pushCurrentPage();
                                 continue;
