@@ -1002,6 +1002,10 @@
             <button onclick="abrirModalUsuarios()">👥 Analisar Solicitações</button>
         </div>
 
+        <div class="pending-requests-banner" id="bannerBloqueioFerias" style="display:none; background:#fef2f2; border-color:#fecaca; color:#991b1b;">
+            <span id="textoBannerBloqueioFerias">🔒 Edição de férias bloqueada pelo Administrador Master. Apenas administradores podem alterar no momento.</span>
+        </div>
+
         <!-- 1. FORMULÁRIO DE CADASTRO / EDIÇÃO (SELETOR DE COLABORADOR EXCLUSIVO PARA ADMINS) -->
         <div class="container-box" id="boxFormCadastro">
             <h2 class="form-title" id="tituloFormFerias">Cadastrar Período de Férias</h2>
@@ -1124,6 +1128,7 @@
                 <button id="btnAbrirAuditoria" class="btn-export audit" onclick="abrirModalAuditoria()">📜 Trilha de Auditoria (<span id="countLogs">0</span>)</button>
                 <button id="btnExportarCSV" class="btn-export csv" onclick="exportarCSV()">📊 Exportar Excel (CSV)</button>
                 <button id="btnImprimirPDF" class="btn-export print" onclick="imprimirRelatorio()">🖨️ Imprimir / Salvar PDF</button>
+                <button id="btnToggleBloqueioFerias" class="btn-export" style="display:none; background:#475569;" onclick="alternarBloqueioFeriasMaster()">🔓 Bloquear Edição de Férias</button>
             </div>
         </div>
 
@@ -1455,7 +1460,8 @@ async function getDB() {
             ferias: (rec && Array.isArray(rec.ferias)) ? rec.ferias.map(normalizarRegistro) : [],
             logs: (rec && Array.isArray(rec.logs)) ? rec.logs : [],
             usuarios: (rec && rec.usuarios && typeof rec.usuarios === 'object') ? rec.usuarios : {},
-            solicitacoes: (rec && Array.isArray(rec.solicitacoes)) ? rec.solicitacoes : []
+            solicitacoes: (rec && Array.isArray(rec.solicitacoes)) ? rec.solicitacoes : [],
+            config: (rec && rec.config && typeof rec.config === 'object') ? rec.config : { feriasBloqueadas: false }
         };
         dbCarregado = true;
     } catch (e) {
@@ -1631,9 +1637,50 @@ function verificarTrocaSenhaObrigatoria() {
     return !conta.senhaAlteradaPeloUsuario || !conta.hash;
 }
 
+function feriasEstaoBloqueadas() {
+    return !!(dbCache && dbCache.config && dbCache.config.feriasBloqueadas);
+}
+
+async function alternarBloqueioFeriasMaster() {
+    if (!isMaster()) {
+        return alert('Acesso restrito: apenas o Administrador Master pode bloquear ou liberar a edição de férias.');
+    }
+    const novoEstado = !feriasEstaoBloqueadas();
+    const acaoTxt = novoEstado
+        ? 'Deseja BLOQUEAR a edição de férias para usuários comuns?\n\nSomente Administradores poderão cadastrar, editar ou excluir férias até você desbloquear.'
+        : 'Deseja DESBLOQUEAR a edição de férias para todos os usuários?';
+    if (!confirm(acaoTxt)) return;
+
+    desabilitarBotoes(true);
+    try {
+        const r = await apiFetch('/api/ferias/bloqueio', {
+            metodo: 'POST',
+            corpo: { bloqueado: novoEstado }
+        });
+        if (r.status === 401) {
+            encerrarSessao('Sessão expirada. Faça login novamente.');
+            return;
+        }
+        if (!r.ok) {
+            alert((r.dados && r.dados.erro) ? r.dados.erro : 'Não foi possível alterar o bloqueio.');
+            return;
+        }
+        if (r.dados && r.dados.config) dbCache.config = r.dados.config;
+        else dbCache.config = { ...(dbCache.config || {}), feriasBloqueadas: novoEstado };
+        if (r.dados && Array.isArray(r.dados.logs)) dbCache.logs = r.dados.logs;
+        renderFerias();
+    } catch (e) {
+        console.error('Erro ao alternar bloqueio de férias:', e);
+        alert('Erro de conexão ao alterar o bloqueio de férias.');
+    } finally {
+        desabilitarBotoes(false);
+    }
+}
+
 function podeModificarRegistro(registro) {
     if (!registro) return false;
     if (isAdmin()) return true;
+    if (feriasEstaoBloqueadas()) return false;
 
     const loginAtual = obterLoginAtual();
     const nomeAtual = obterOperadorAtual().toLowerCase().trim();
@@ -2408,7 +2455,7 @@ function limparFiltros() {
     renderFerias();
 }
 
-const MESES_ALTERNANCIA = { 6: 'Junho', 7: 'Julho', 12: 'Dezembro' };
+const MESES_ALTERNANCIA = { 2: 'Fevereiro', 6: 'Junho', 12: 'Dezembro' };
 
 function mesesRestritosTocadosFerias(inicioIso, dias) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(inicioIso || ''));
@@ -2599,6 +2646,9 @@ async function salvarFerias() {
     if (verificarTrocaSenhaObrigatoria()) {
         abrirModalMinhaSenha(true);
         return;
+    }
+    if (!isAdmin() && feriasEstaoBloqueadas()) {
+        return showErrorFerias('As alterações de férias estão bloqueadas pelo Administrador Master. Apenas administradores podem editar no momento.');
     }
 
     const mapa = obterMapaUsuarios();
@@ -2854,6 +2904,39 @@ function renderFerias() {
     } else {
         bannerPendentes.style.display = 'none';
         badgePendentesBtn.style.display = 'none';
+    }
+
+    const bloqueado = feriasEstaoBloqueadas();
+    const btnBloqueio = document.getElementById('btnToggleBloqueioFerias');
+    if (btnBloqueio) {
+        if (isMaster()) {
+            btnBloqueio.style.display = 'inline-flex';
+            btnBloqueio.innerText = bloqueado ? '🔒 Edição Bloqueada (Desbloquear)' : '🔓 Bloquear Edição de Férias';
+            btnBloqueio.style.background = bloqueado ? '#dc2626' : '#475569';
+        } else {
+            btnBloqueio.style.display = 'none';
+        }
+    }
+
+    const bannerBloqueio = document.getElementById('bannerBloqueioFerias');
+    if (bannerBloqueio) {
+        if (bloqueado) {
+            bannerBloqueio.style.display = 'flex';
+            document.getElementById('textoBannerBloqueioFerias').innerHTML = adminAtivo
+                ? '🔒 <strong>Modo Bloqueio Ativo:</strong> usuários comuns estão impedidos de cadastrar, editar ou excluir férias (apenas Administradores podem alterar).'
+                : '🔒 <strong>Edição bloqueada pelo Administrador Master:</strong> no momento, apenas Administradores podem cadastrar, editar ou excluir férias.';
+        } else {
+            bannerBloqueio.style.display = 'none';
+        }
+    }
+
+    const btnSalvarFerias = document.getElementById('btnSalvarFerias');
+    if (btnSalvarFerias && editandoFeriasId === null) {
+        const travadoParaMim = bloqueado && !adminAtivo;
+        btnSalvarFerias.disabled = travadoParaMim;
+        btnSalvarFerias.innerText = travadoParaMim ? '🔒 Edição Bloqueada pelo Master' : 'Adicionar Férias';
+        btnSalvarFerias.style.opacity = travadoParaMim ? '0.6' : '';
+        btnSalvarFerias.style.cursor = travadoParaMim ? 'not-allowed' : '';
     }
 
     if (!listaFiltrada.length) {
