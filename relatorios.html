@@ -2449,6 +2449,95 @@
             renderA4Document();
         };
 
+        let draggingBlockState = null;
+
+        window.enableBlockCardDrag = function (handleEl) {
+            const card = handleEl && handleEl.closest('[data-block-card]');
+            if (card) card.draggable = true;
+        };
+
+        window.disableBlockCardDrag = function (cardEl) {
+            if (cardEl) cardEl.draggable = false;
+        };
+
+        window.handleBlockDragStart = function (event, targetKey, blockId) {
+            const card = event.currentTarget;
+            draggingBlockState = { targetKey, blockId };
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', `${targetKey}:${blockId}`);
+            }
+            setTimeout(() => {
+                if (card) card.classList.add('opacity-50', 'ring-2', 'ring-blue-400');
+            }, 0);
+        };
+
+        window.handleBlockDragOver = function (event, targetKey, blockId) {
+            if (!draggingBlockState || draggingBlockState.targetKey !== targetKey || draggingBlockState.blockId === blockId) {
+                return;
+            }
+            event.preventDefault();
+            if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+            const card = event.currentTarget;
+            const rect = card.getBoundingClientRect();
+            const isTopHalf = (event.clientY - rect.top) < (rect.height / 2);
+            card.classList.remove('border-t-4', 'border-t-blue-600', 'border-b-4', 'border-b-blue-600');
+            if (isTopHalf) {
+                card.classList.add('border-t-4', 'border-t-blue-600');
+            } else {
+                card.classList.add('border-b-4', 'border-b-blue-600');
+            }
+        };
+
+        window.handleBlockDragLeave = function (event) {
+            const card = event.currentTarget;
+            if (!card.contains(event.relatedTarget)) {
+                card.classList.remove('border-t-4', 'border-t-blue-600', 'border-b-4', 'border-b-blue-600');
+            }
+        };
+
+        window.handleBlockDrop = function (event, targetKey, targetBlockId) {
+            event.preventDefault();
+            const card = event.currentTarget;
+            const rect = card.getBoundingClientRect();
+            const insertBefore = (event.clientY - rect.top) < (rect.height / 2);
+            card.classList.remove('border-t-4', 'border-t-blue-600', 'border-b-4', 'border-b-blue-600');
+
+            if (!draggingBlockState || draggingBlockState.targetKey !== targetKey || draggingBlockState.blockId === targetBlockId) {
+                return;
+            }
+            const blocks = getBlocksArrayForTarget(targetKey);
+            if (!blocks) return;
+            const fromIdx = blocks.findIndex((b) => b.id === draggingBlockState.blockId);
+            if (fromIdx < 0) return;
+
+            const [moved] = blocks.splice(fromIdx, 1);
+            let toIdx = blocks.findIndex((b) => b.id === targetBlockId);
+            if (toIdx < 0) {
+                blocks.push(moved);
+            } else {
+                if (!insertBefore) toIdx += 1;
+                blocks.splice(toIdx, 0, moved);
+            }
+
+            draggingBlockState = null;
+            renderAllBlockEditors();
+            renderA4Document();
+        };
+
+        window.handleBlockDragEnd = function (event) {
+            draggingBlockState = null;
+            const card = event.currentTarget;
+            if (card) {
+                card.draggable = false;
+                card.classList.remove('opacity-50', 'ring-2', 'ring-blue-400', 'border-t-4', 'border-t-blue-600', 'border-b-4', 'border-b-blue-600');
+            }
+            document.querySelectorAll('[data-block-card]').forEach((el) => {
+                el.draggable = false;
+                el.classList.remove('opacity-50', 'ring-2', 'ring-blue-400', 'border-t-4', 'border-t-blue-600', 'border-b-4', 'border-b-blue-600');
+            });
+        };
+
         window.updateBlockText = function (targetKey, blockId, newText) {
             const blocks = getBlocksArrayForTarget(targetKey);
             if (!blocks) return;
@@ -2813,26 +2902,27 @@
         }
 
         function renderSectionBlockEditor(targetKey, blk, index, totalCount) {
+            const dragHandle = `
+                <span onmousedown="enableBlockCardDrag(this)" onmouseup="disableBlockCardDrag(this.closest('[data-block-card]'))" class="inline-flex items-center justify-center w-6 h-6 rounded bg-slate-100 hover:bg-blue-50 text-slate-400 hover:text-blue-600 cursor-grab active:cursor-grabbing transition" title="Arraste para reordenar este bloco">
+                    <i class="fa-solid fa-grip-vertical text-xs"></i>
+                </span>
+            `;
             const moveControls = `
                 <div class="flex items-center gap-1">
-                    <button type="button" onclick="moveBlock('${targetKey}', '${blk.id}', -1)" ${index === 0 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-35 text-slate-600 text-[10px] flex items-center justify-center" title="Mover para cima">
-                        <i class="fa-solid fa-chevron-up"></i>
-                    </button>
-                    <button type="button" onclick="moveBlock('${targetKey}', '${blk.id}', 1)" ${index === totalCount - 1 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-35 text-slate-600 text-[10px] flex items-center justify-center" title="Mover para baixo">
-                        <i class="fa-solid fa-chevron-down"></i>
-                    </button>
                     <button type="button" onclick="removeBlock('${targetKey}', '${blk.id}')" class="w-6 h-6 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] flex items-center justify-center" title="Remover bloco">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
             `;
+            const cardDragAttrs = `data-block-card="1" ondragstart="handleBlockDragStart(event, '${targetKey}', '${blk.id}')" ondragover="handleBlockDragOver(event, '${targetKey}', '${blk.id}')" ondragleave="handleBlockDragLeave(event)" ondrop="handleBlockDrop(event, '${targetKey}', '${blk.id}')" ondragend="handleBlockDragEnd(event)" onmouseup="disableBlockCardDrag(this)"`;
 
             if (blk.type === 'paragraph') {
                 const hasUndo = Boolean(blk.prevText && blk.prevText !== blk.text);
                 return `
-                    <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs space-y-2">
+                    <div ${cardDragAttrs} class="bg-white rounded-xl p-3 border border-slate-200 shadow-2xs space-y-2 transition-opacity">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                                ${dragHandle}
                                 <i class="fa-solid fa-align-justify text-blue-600"></i>
                                 <span>Parágrafo de Texto #${index + 1}</span>
                             </span>
@@ -2946,9 +3036,10 @@
             }
 
             return `
-                <div class="bg-white rounded-xl p-3 border border-emerald-200 shadow-2xs space-y-2.5">
+                <div ${cardDragAttrs} class="bg-white rounded-xl p-3 border border-emerald-200 shadow-2xs space-y-2.5 transition-opacity">
                     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
                         <span class="text-[11px] font-extrabold text-emerald-800 flex items-center gap-1.5">
+                            ${dragHandle}
                             <i class="fa-solid fa-camera"></i>
                             <span>Quadro Fotográfico (${isDouble ? '2 Fotos Lado a Lado' : '1 Foto Grande'})</span>
                         </span>
