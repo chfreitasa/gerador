@@ -163,6 +163,9 @@
             color: #1e293b;
             margin-bottom: 9px;
             white-space: pre-line;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100%;
         }
         .doc-caption {
             font-size: 9.2pt;
@@ -3730,6 +3733,13 @@
                             const restoLinhas = linhasOriginais.slice(idxLinha + 1);
                             const restanteBruto = [sobraLinha, ...restoLinhas].filter(Boolean).join('\n');
                             return balancearMarcacaoQuebra(aceitas.join('\n'), restanteBruto);
+                        } else if (linhasUsadas === 0) {
+                            const corte = Math.max(1, linhasLivres * 98);
+                            const pedaco = ln.slice(0, corte);
+                            const sobra = ln.slice(corte);
+                            const restoLinhas = linhasOriginais.slice(idxLinha + 1);
+                            const restanteBruto = [sobra, ...restoLinhas].filter(Boolean).join('\n');
+                            return balancearMarcacaoQuebra(pedaco, restanteBruto);
                         }
                     }
                     break;
