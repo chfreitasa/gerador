@@ -4037,6 +4037,26 @@
             try {
                 const docType = currentReport.docType === 'REL' ? 'REL' : 'NI';
                 const yr = Number(currentReport.year) || new Date().getFullYear();
+
+                if (!currentReport.id && !currentReport.manualSeqOverride && isCloudConnected && apiConfigurada()) {
+                    try {
+                        if (label) label.textContent = 'Sincronizando numeração...';
+                        const respSync = await fetch(API_URL + '/api/relatorios', { headers: cabecalhosAuth() });
+                        const dadosSync = await respSync.json().catch(() => ({}));
+                        if (respSync.ok && dadosSync && dadosSync.relatorios) {
+                            const dr = dadosSync.relatorios;
+                            if (Array.isArray(dr.lista)) {
+                                listaServidor = dr.lista.slice().sort(ordenarPorAtualizacao);
+                            }
+                            if (dr.contadores && typeof dr.contadores === 'object') {
+                                yearCountersMap = Object.assign({}, dr.contadores);
+                            }
+                            remontarRepositorio();
+                        }
+                    } catch (_) { }
+                    if (label) label.textContent = 'Salvando no Repositório...';
+                }
+
                 let seqToUse = Number(currentReport.seqNumber) || getNextAvailableSeq(docType, yr);
 
                 if (!currentReport.id && !currentReport.manualSeqOverride) {

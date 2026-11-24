@@ -534,8 +534,9 @@
         }
         .log-badge.CADASTRO, .log-badge.APROVAÇÃO { background: var(--alupar-green); }
         .log-badge.EDIÇÃO, .log-badge.SOLICITAÇÃO { background: var(--warning); }
-        .log-badge.EXCLUSÃO, .log-badge.RECUSA { background: var(--error); }
+        .log-badge.EXCLUSÃO, .log-badge.RECUSA, .log-badge.LOGIN_ERRO { background: var(--error); }
         .log-badge.USUÁRIO, .log-badge.SENHA { background: var(--alupar-blue); }
+        .log-badge.LOGIN { background: #0d9488; }
         .log-footer {
             padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;
             display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -1496,6 +1497,77 @@ async function saveDB() {
     }
 }
 
+async function salvarFeriasIncremental(registro, logEntry) {
+    if (!dbCarregado) {
+        alert('Sincronização pendente: o banco ainda não foi carregado do servidor. A gravação foi bloqueada para evitar perda de dados.');
+        return false;
+    }
+
+    desabilitarBotoes(true);
+    try {
+        const r = await apiFetch('/api/ferias/salvar', {
+            metodo: 'POST',
+            corpo: { registro, logEntry }
+        });
+        if (r.status === 401) {
+            encerrarSessao('Sessão expirada. Faça login novamente.');
+            return false;
+        }
+        if (r.status === 400 || r.status === 403) {
+            const msg = (r.dados && r.dados.erro) ? r.dados.erro : 'Operação rejeitada pelo servidor.';
+            showErrorFerias(msg);
+            await getDB();
+            renderFerias();
+            return false;
+        }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (r.dados && Array.isArray(r.dados.ferias)) dbCache.ferias = r.dados.ferias;
+        if (r.dados && Array.isArray(r.dados.logs)) dbCache.logs = r.dados.logs;
+        return true;
+    } catch (e) {
+        console.error('Erro na gravação incremental de férias:', e);
+        alert('Erro de conexão ao salvar as férias na nuvem.');
+        return false;
+    } finally {
+        desabilitarBotoes(false);
+    }
+}
+
+async function excluirFeriasIncremental(id, logEntry) {
+    if (!dbCarregado) {
+        alert('Sincronização pendente: o banco ainda não foi carregado do servidor.');
+        return false;
+    }
+
+    desabilitarBotoes(true);
+    try {
+        const r = await apiFetch('/api/ferias/excluir', {
+            metodo: 'POST',
+            corpo: { id, logEntry }
+        });
+        if (r.status === 401) {
+            encerrarSessao('Sessão expirada. Faça login novamente.');
+            return false;
+        }
+        if (r.status === 400 || r.status === 403) {
+            alert((r.dados && r.dados.erro) ? r.dados.erro : 'Operação não permitida.');
+            await getDB();
+            renderFerias();
+            return false;
+        }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        if (r.dados && Array.isArray(r.dados.ferias)) dbCache.ferias = r.dados.ferias;
+        if (r.dados && Array.isArray(r.dados.logs)) dbCache.logs = r.dados.logs;
+        return true;
+    } catch (e) {
+        console.error('Erro na exclusão incremental de férias:', e);
+        alert('Erro de conexão ao excluir as férias na nuvem.');
+        return false;
+    } finally {
+        desabilitarBotoes(false);
+    }
+}
+
 function formatarDataHoraAtual() {
     const agora = new Date();
     return `${agora.toLocaleDateString('pt-BR')} às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
@@ -2328,7 +2400,7 @@ function limparFiltros() {
     renderFerias();
 }
 
-const MESES_ALTERNANCIA = { 1: 'Janeiro', 6: 'Junho', 7: 'Julho', 12: 'Dezembro' };
+const MESES_ALTERNANCIA = { 6: 'Junho', 7: 'Julho', 12: 'Dezembro' };
 
 function mesesRestritosTocadosFerias(inicioIso, dias) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(inicioIso || ''));
@@ -2578,7 +2650,11 @@ async function salvarFerias() {
     const erroSetor = verificarConflitoSetorFerias(candidatoAlternancia, dbCache.ferias);
     if (erroSetor) return showErrorFerias(erroSetor);
 
-    if (editandoFeriasId !== null) {
+    let registroParaSalvar = null;
+    let logParaSalvar = null;
+    const eraEdicao = editandoFeriasId !== null;
+
+    if (eraEdicao) {
         let idx = dbCache.ferias.findIndex(f => f.id === editandoFeriasId);
         if (idx !== -1) {
             const ant = dbCache.ferias[idx];
@@ -2591,7 +2667,7 @@ async function salvarFerias() {
             const resumoAntes = `${ant.nome} (${ant.setor || 'S/S'} | ${ant.subestacao || 'S/SE'}): ${ant.inicioStr} a ${ant.fimStr} (${ant.dias}d)`;
             const resumoDepois = `${nomeFinal} (${setor} | ${subestacao}): ${inicioFormatado} a ${fimFormatado} (${d}d)`;
 
-            dbCache.ferias[idx] = {
+            registroParaSalvar = {
                 ...ant,
                 nome: nomeFinal,
                 titularLogin: loginTitularFinal,
@@ -2607,12 +2683,17 @@ async function salvarFerias() {
                 editadoPorLogin: loginOperador,
                 editadoEm: agoraStr
             };
-            registrarLog('EDIÇÃO', `De [${resumoAntes}] para [${resumoDepois}]`);
+            logParaSalvar = {
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                dataHora: formatarDataHoraAtual(),
+                operador: `${operador} (${loginOperador || 'sistema'})`,
+                acao: 'EDIÇÃO',
+                detalhes: `De [${resumoAntes}] para [${resumoDepois}]`
+            };
         }
-        limparFormularioFerias();
     } else {
-        dbCache.ferias.push({
-            id: Date.now(),
+        registroParaSalvar = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
             nome: nomeColaborador,
             titularLogin: loginTitular,
             setor: setor,
@@ -2626,8 +2707,23 @@ async function salvarFerias() {
             criadoPor: operador,
             criadoPorLogin: loginOperador,
             criadoEm: agoraStr
-        });
-        registrarLog('CADASTRO', `Cadastrou férias de ${nomeColaborador} (${setor} | ${subestacao}): ${inicioFormatado} até ${fimFormatado} (${d} dias)`);
+        };
+        logParaSalvar = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            dataHora: formatarDataHoraAtual(),
+            operador: `${operador} (${loginOperador || 'sistema'})`,
+            acao: 'CADASTRO',
+            detalhes: `Cadastrou férias de ${nomeColaborador} (${setor} | ${subestacao}): ${inicioFormatado} até ${fimFormatado} (${d} dias)`
+        };
+    }
+
+    if (!registroParaSalvar) return;
+    const salvou = await salvarFeriasIncremental(registroParaSalvar, logParaSalvar);
+    if (!salvou) return;
+
+    if (eraEdicao) {
+        limparFormularioFerias();
+    } else {
         document.getElementById('fDias').value = '';
         if (isAdmin() && document.getElementById('fColabSelect').value === '__OUTRO__') {
             document.getElementById('fColabOutro').value = '';
@@ -2640,7 +2736,6 @@ async function salvarFerias() {
         selectAno.value = anoCadastrado;
     }
 
-    await saveDB();
     renderFerias();
 }
 
@@ -2710,11 +2805,19 @@ async function removerFerias(id) {
 
     if (!confirm(`Remover o período de férias de ${alvo.nome}?`)) return;
 
-    if (editandoFeriasId === id) limparFormularioFerias();
-    dbCache.ferias = dbCache.ferias.filter(f => f.id !== id);
-    registrarLog('EXCLUSÃO', `Removeu férias de ${alvo.nome} (${alvo.setor || 'S/S'} | ${alvo.subestacao || 'S/SE'}): ${alvo.inicioStr} até ${alvo.fimStr} (${alvo.dias}d)`);
+    const operador = obterOperadorAtual();
+    const loginOperador = obterLoginAtual();
+    const logExclusao = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        dataHora: formatarDataHoraAtual(),
+        operador: `${operador} (${loginOperador || 'sistema'})`,
+        acao: 'EXCLUSÃO',
+        detalhes: `Removeu férias de ${alvo.nome} (${alvo.setor || 'S/S'} | ${alvo.subestacao || 'S/SE'}): ${alvo.inicioStr} até ${alvo.fimStr} (${alvo.dias}d)`
+    };
 
-    await saveDB();
+    const excluiu = await excluirFeriasIncremental(id, logExclusao);
+    if (!excluiu) return;
+    if (editandoFeriasId === id) limparFormularioFerias();
     renderFerias();
 }
 
