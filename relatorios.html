@@ -160,12 +160,16 @@
             font-size: 10.6pt;
             line-height: 1.48;
             text-align: justify;
+            text-indent: 1.8em;
             color: #1e293b;
             margin-bottom: 9px;
             white-space: pre-line;
             overflow-wrap: anywhere;
             word-break: break-word;
             max-width: 100%;
+        }
+        .doc-paragraph.doc-paragraph-cont {
+            text-indent: 0;
         }
         .doc-caption {
             font-size: 9.2pt;
@@ -3681,76 +3685,26 @@
             `;
         }
 
-        function estimarLinhasTexto(text) {
-            const semMarcacao = String(text || '').replace(/\*+/g, '');
-            const linhas = semMarcacao.split('\n');
-            let total = 0;
-            for (const ln of linhas) {
-                total += Math.max(1, Math.ceil(ln.length / 98));
+        function obterMedidorA4(container) {
+            let measurer = document.getElementById('a4-page-measurer');
+            if (!measurer) {
+                measurer = document.createElement('div');
+                measurer.id = 'a4-page-measurer';
+                measurer.className = 'a4-sheet';
+                measurer.style.position = 'fixed';
+                measurer.style.left = '-99999px';
+                measurer.style.top = '0';
+                measurer.style.visibility = 'hidden';
+                measurer.style.pointerEvents = 'none';
+                measurer.style.margin = '0';
+                document.body.appendChild(measurer);
             }
-            return Math.max(1, total);
-        }
-
-        function estimateParagraphUnits(text) {
-            const clean = (text || '').trim();
-            if (!clean) return 31;
-            return estimarLinhasTexto(clean) * 21 + 10;
-        }
-
-        function extrairTrechoQueCabe(rawText, maxLinhas) {
-            const texto = String(rawText || '').trim();
-            if (!texto) return { parte: '', restante: '' };
-
-            const linhasOriginais = texto.split('\n');
-            const aceitas = [];
-            let linhasUsadas = 0;
-            let idxLinha = 0;
-
-            for (; idxLinha < linhasOriginais.length; idxLinha++) {
-                const ln = linhasOriginais[idxLinha];
-                const custoLn = Math.max(1, Math.ceil(ln.replace(/\*+/g, '').length / 98));
-                if (linhasUsadas + custoLn <= maxLinhas) {
-                    aceitas.push(ln);
-                    linhasUsadas += custoLn;
-                } else {
-                    const linhasLivres = maxLinhas - linhasUsadas;
-                    if (linhasLivres >= 1 && ln.trim().length > 0) {
-                        const palavras = ln.split(/(\s+)/);
-                        let parcial = '';
-                        let k = 0;
-                        for (; k < palavras.length; k++) {
-                            const candidato = parcial + palavras[k];
-                            const custoCand = Math.max(1, Math.ceil(candidato.replace(/\*+/g, '').length / 98));
-                            if (custoCand <= linhasLivres) {
-                                parcial = candidato;
-                            } else {
-                                break;
-                            }
-                        }
-                        if (parcial.trim().length > 0) {
-                            aceitas.push(parcial.trimEnd());
-                            const sobraLinha = palavras.slice(k).join('').trimStart();
-                            const restoLinhas = linhasOriginais.slice(idxLinha + 1);
-                            const restanteBruto = [sobraLinha, ...restoLinhas].filter(Boolean).join('\n');
-                            return balancearMarcacaoQuebra(aceitas.join('\n'), restanteBruto);
-                        } else if (linhasUsadas === 0) {
-                            const corte = Math.max(1, linhasLivres * 98);
-                            const pedaco = ln.slice(0, corte);
-                            const sobra = ln.slice(corte);
-                            const restoLinhas = linhasOriginais.slice(idxLinha + 1);
-                            const restanteBruto = [sobra, ...restoLinhas].filter(Boolean).join('\n');
-                            return balancearMarcacaoQuebra(pedaco, restanteBruto);
-                        }
-                    }
-                    break;
-                }
-            }
-
-            if (aceitas.length === 0) {
-                return { parte: '', restante: texto };
-            }
-            const restante = linhasOriginais.slice(idxLinha).join('\n');
-            return balancearMarcacaoQuebra(aceitas.join('\n'), restante);
+            measurer.innerHTML = `
+                <div style="flex-shrink:0;">${buildPageHeaderHTML()}</div>
+                <div class="sheet-body" style="flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;"></div>
+                <div style="flex-shrink:0;">${buildPageFooterHTML(2, 2)}</div>
+            `;
+            return measurer.querySelector('.sheet-body');
         }
 
         function balancearMarcacaoQuebra(parte, restante) {
@@ -3775,86 +3729,139 @@
             const container = document.getElementById('a4-pages-container');
             if (!container) return;
 
-            const MAX_PAGE_UNITS = 920;
+            const measurerBody = obterMedidorA4(container);
+            const maxBodyHeight = Math.max(200, measurerBody.clientHeight - 4);
             const pages = [];
             let currentPageElements = [];
-            let currentUnits = 0;
             let figureCounter = 1;
+
+            const caberNoMedidor = (htmlExtra) => {
+                const probe = document.createElement('div');
+                probe.innerHTML = htmlExtra;
+                const nodes = Array.from(probe.childNodes);
+                nodes.forEach((n) => measurerBody.appendChild(n));
+                const cabe = measurerBody.scrollHeight <= maxBodyHeight;
+                nodes.forEach((n) => n.remove());
+                return cabe;
+            };
+
+            const anexarNoMedidor = (html) => {
+                measurerBody.insertAdjacentHTML('beforeend', html);
+            };
 
             const pushCurrentPage = () => {
                 if (currentPageElements.length > 0) {
                     pages.push(currentPageElements.join(''));
                     currentPageElements = [];
-                    currentUnits = 0;
+                    measurerBody.innerHTML = '';
                 }
             };
 
             // Section 1: Informações Gerais
             const sec1HTML = buildSection1InfoGeraisHTML();
-            const extraRowsCount = ((currentReport.sector || '').trim() ? 1 : 0) + ((currentReport.bayLocation || '').trim() ? 1 : 0) + ((currentReport.manufacturerModel || '').trim() ? 1 : 0);
-            const sec1Units = 200 + extraRowsCount * 28;
             currentPageElements.push(sec1HTML);
-            currentUnits += sec1Units;
+            anexarNoMedidor(sec1HTML);
 
             // Helper to paginate any section
             const appendSectionToPages = (sectionTitle, targetKey, blocks, allowPhotos = true) => {
                 const validBlocks = (blocks || []).filter((b) => allowPhotos || b.type === 'paragraph');
                 if (validBlocks.length === 0) return;
 
-                if (currentUnits + 85 > MAX_PAGE_UNITS && currentPageElements.length > 0) {
+                const titleHTML = `<div class="doc-section-title">${escapeHtml(sectionTitle)}</div>`;
+                const titleComReserva = titleHTML + '<p class="doc-paragraph" style="margin-bottom:0;">&nbsp;<br>&nbsp;</p>';
+                if (currentPageElements.length > 0 && !caberNoMedidor(titleComReserva)) {
                     pushCurrentPage();
                 }
 
-                currentPageElements.push(`<div class="doc-section-title">${escapeHtml(sectionTitle)}</div>`);
-                currentUnits += 42;
+                currentPageElements.push(titleHTML);
+                anexarNoMedidor(titleHTML);
 
                 validBlocks.forEach((blk) => {
                     if (blk.type === 'paragraph') {
                         let textoRestante = (blk.text || '').trim();
+                        let ehContinuacao = false;
                         while (textoRestante) {
-                            const pUnits = estimateParagraphUnits(textoRestante);
-                            const disponivel = MAX_PAGE_UNITS - currentUnits;
-                            if (pUnits <= disponivel) {
-                                const safeText = formatInlineRichText(textoRestante);
-                                if (safeText) {
-                                    currentPageElements.push(`<p class="doc-paragraph">${safeText}</p>`);
-                                    currentUnits += pUnits;
-                                }
+                            const clsP = ehContinuacao ? 'doc-paragraph doc-paragraph-cont' : 'doc-paragraph';
+                            const fullHTML = `<p class="${clsP}">${formatInlineRichText(textoRestante)}</p>`;
+                            if (caberNoMedidor(fullHTML)) {
+                                currentPageElements.push(fullHTML);
+                                anexarNoMedidor(fullHTML);
                                 break;
                             }
-                            const maxLinhas = Math.floor((disponivel - 10) / 21);
-                            if (maxLinhas < 2 && currentPageElements.length > 0) {
-                                pushCurrentPage();
-                                continue;
+
+                            const tokens = textoRestante.split(/(\s+)/);
+                            let low = 1;
+                            let high = tokens.length;
+                            let best = 0;
+
+                            while (low <= high) {
+                                const mid = (low + high) >> 1;
+                                const rawCand = tokens.slice(0, mid).join('').trimEnd();
+                                if (!rawCand) {
+                                    low = mid + 1;
+                                    continue;
+                                }
+                                const rawRest = tokens.slice(mid).join('').trimStart();
+                                const { parte } = balancearMarcacaoQuebra(rawCand, rawRest);
+                                const candHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                                if (caberNoMedidor(candHTML)) {
+                                    best = mid;
+                                    low = mid + 1;
+                                } else {
+                                    high = mid - 1;
+                                }
                             }
-                            const { parte, restante } = extrairTrechoQueCabe(textoRestante, Math.max(2, maxLinhas));
-                            if (!parte) {
+
+                            if (best === 0) {
                                 if (currentPageElements.length > 0) {
                                     pushCurrentPage();
                                     continue;
                                 }
-                                break;
+                                // Palavra gigante sem espaços maior que a página inteira: quebra por caractere
+                                let cLow = 1;
+                                let cHigh = textoRestante.length;
+                                let cBest = 1;
+                                while (cLow <= cHigh) {
+                                    const cMid = (cLow + cHigh) >> 1;
+                                    const { parte } = balancearMarcacaoQuebra(textoRestante.slice(0, cMid), textoRestante.slice(cMid));
+                                    const candHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                                    if (caberNoMedidor(candHTML)) {
+                                        cBest = cMid;
+                                        cLow = cMid + 1;
+                                    } else {
+                                        cHigh = cMid - 1;
+                                    }
+                                }
+                                const { parte, restante } = balancearMarcacaoQuebra(textoRestante.slice(0, cBest), textoRestante.slice(cBest));
+                                const partHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                                currentPageElements.push(partHTML);
+                                textoRestante = restante;
+                                ehContinuacao = true;
+                                if (textoRestante) pushCurrentPage();
+                                continue;
                             }
-                            const safeParte = formatInlineRichText(parte);
-                            if (safeParte) {
-                                currentPageElements.push(`<p class="doc-paragraph">${safeParte}</p>`);
-                                currentUnits += estimateParagraphUnits(parte);
-                            }
-                            textoRestante = (restante || '').trim();
+
+                            const rawParte = tokens.slice(0, best).join('').trimEnd();
+                            const rawResto = tokens.slice(best).join('').trimStart();
+                            const { parte, restante } = balancearMarcacaoQuebra(rawParte, rawResto);
+                            const partHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                            currentPageElements.push(partHTML);
+                            anexarNoMedidor(partHTML);
+
+                            textoRestante = restante;
+                            ehContinuacao = true;
                             if (textoRestante) {
                                 pushCurrentPage();
                             }
                         }
                     } else if (allowPhotos) {
-                        const frameH = getPhotoFrameHeightPx(blk.sizePreset);
-                        const photoUnits = frameH + 46;
-                        if (currentUnits + photoUnits > MAX_PAGE_UNITS && currentPageElements.length > 0) {
-                            pushCurrentPage();
-                        }
                         const html = buildPhotoBlockHTML(targetKey, blk, figureCounter);
                         figureCounter += blk.type === 'photo-double' ? 2 : 1;
+                        if (currentPageElements.length > 0 && !caberNoMedidor(html)) {
+                            pushCurrentPage();
+                        }
                         currentPageElements.push(html);
-                        currentUnits += photoUnits;
+                        anexarNoMedidor(html);
                     }
                 });
             };
@@ -3884,11 +3891,11 @@
                 buildCoverSheetHTML(totalPages),
                 ...pages.map((bodyHTML, idx) => `
                     <div class="a4-sheet">
-                        ${buildPageHeaderHTML()}
-                        <div style="flex:1; display:flex; flex-direction:column;">
+                        <div style="flex-shrink:0;">${buildPageHeaderHTML()}</div>
+                        <div class="sheet-body" style="flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;">
                             ${bodyHTML}
                         </div>
-                        ${buildPageFooterHTML(idx + 2, totalPages)}
+                        <div style="flex-shrink:0;">${buildPageFooterHTML(idx + 2, totalPages)}</div>
                     </div>
                 `)
             ].join('');
