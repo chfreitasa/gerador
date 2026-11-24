@@ -2909,6 +2909,12 @@
             `;
             const moveControls = `
                 <div class="flex items-center gap-1">
+                    <button type="button" onclick="moveBlock('${targetKey}', '${blk.id}', -1)" ${index === 0 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-35 text-slate-600 text-[10px] flex items-center justify-center" title="Mover para cima">
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
+                    <button type="button" onclick="moveBlock('${targetKey}', '${blk.id}', 1)" ${index === totalCount - 1 ? 'disabled' : ''} class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-35 text-slate-600 text-[10px] flex items-center justify-center" title="Mover para baixo">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
                     <button type="button" onclick="removeBlock('${targetKey}', '${blk.id}')" class="w-6 h-6 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] flex items-center justify-center" title="Remover bloco">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
