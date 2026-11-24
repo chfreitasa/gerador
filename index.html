@@ -923,6 +923,8 @@
                         <option value="SE RGD">SE RGD</option>
                         <option value="SE JCT">SE JCT</option>
                         <option value="SE JCD">SE JCD</option>
+                        <option value="SE BRA">SE BRA</option>
+                        <option value="SE BRD">SE BRD</option>
                     </select>
                 </div>
                 <div class="error-msg" id="reqErrorMsg"></div>
@@ -1032,6 +1034,8 @@
                         <option value="SE RGD">SE RGD</option>
                         <option value="SE JCT">SE JCT</option>
                         <option value="SE JCD">SE JCD</option>
+                        <option value="SE BRA">SE BRA</option>
+                        <option value="SE BRD">SE BRD</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin:0">
@@ -1094,6 +1098,8 @@
                     <option value="SE RGD">SE RGD</option>
                     <option value="SE JCT">SE JCT</option>
                     <option value="SE JCD">SE JCD</option>
+                    <option value="SE BRA">SE BRA</option>
+                    <option value="SE BRD">SE BRD</option>
                 </select>
             </div>
             <button class="btn-clear-filters" onclick="limparFiltros()" title="Resetar todos os filtros">Limpar Filtros</button>
@@ -1207,6 +1213,8 @@
                         <option value="SE RGD">SE RGD</option>
                         <option value="SE JCT">SE JCT</option>
                         <option value="SE JCD">SE JCD</option>
+                        <option value="SE BRA">SE BRA</option>
+                        <option value="SE BRD">SE BRD</option>
                     </select>
                 </div>
                 <div>
@@ -1286,7 +1294,7 @@ const API_URL = 'https://plataforma.nordeste.workers.dev'; // ex.: https://feria
 
 const ITERACOES_PBKDF2 = 150000;
 const LISTA_SETORES = ['TELECOM', 'SPCS', 'OPERAÇÃO', 'EAT', 'LT'];
-const LISTA_SES = ['SE JZT', 'SE GOR', 'SE OUR', 'SE BJD', 'SE SDS', 'SE RDE', 'SE RGD', 'SE JCT', 'SE JCD'];
+const LISTA_SES = ['SE JZT', 'SE GOR', 'SE OUR', 'SE BJD', 'SE SDS', 'SE RDE', 'SE RGD', 'SE JCT', 'SE JCD', 'SE BRA', 'SE BRD'];
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const DIAS_SEMANA = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
