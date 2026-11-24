@@ -160,16 +160,12 @@
             font-size: 10.6pt;
             line-height: 1.48;
             text-align: justify;
-            text-indent: 1.8em;
             color: #1e293b;
             margin-bottom: 9px;
             white-space: pre-line;
             overflow-wrap: anywhere;
             word-break: break-word;
             max-width: 100%;
-        }
-        .doc-paragraph.doc-paragraph-cont {
-            text-indent: 0;
         }
         .doc-caption {
             font-size: 9.2pt;
@@ -234,7 +230,7 @@
         <div class="max-w-[1680px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-3">
             <!-- Brand & Title -->
             <div class="flex items-center gap-3">
-                <div id="topbar-alupar-logo" class="flex items-center justify-center">
+                <a href="index.html#portal" onclick="event.preventDefault(); voltarAoPortal();" id="topbar-alupar-logo" class="flex items-center justify-center cursor-pointer hover:opacity-90 transition" title="Voltar ao portal de módulos">
                     <svg viewBox="0 0 305 100" class="h-8 w-auto" xmlns="http://www.w3.org/2000/svg" aria-label="Alupar">
                         <path d="M8 82 L31 18 H46 L69 82 H54 L49 67 H28 L23 82 Z M32 55 H45 L38.5 34 Z" fill="#FFFFFF"/>
                         <rect x="74" y="18" width="13" height="64" rx="2" fill="#FFFFFF"/>
@@ -244,7 +240,7 @@
                         <path d="M208 42 C214 38 222 36 230 36 C244 36 251 43 251 55 V82 H239 V76 C235 81 229 83 222 83 C211 83 204 77 204 68 C204 58 212 53 227 53 H238 V52 C238 47 234 45 227 45 C221 45 215 47 211 50 Z M238 61 H228 C220 61 217 63 217 67 C217 71 220 73 225 73 C233 73 238 69 238 63 Z" fill="#FFFFFF"/>
                         <path d="M260 37 H272 V45 C275 39 280 36 287 36 C289 36 291 36 292 37 V49 C290 48 288 48 285 48 C277 48 273 53 273 62 V82 H260 Z" fill="#FFFFFF"/>
                     </svg>
-                </div>
+                </a>
                 <div class="flex items-center">
                     <h1 class="text-sm sm:text-base font-extrabold text-white tracking-tight">
                         Gerador de Relatórios
@@ -3701,7 +3697,7 @@
             }
             measurer.innerHTML = `
                 <div style="flex-shrink:0;">${buildPageHeaderHTML()}</div>
-                <div class="sheet-body" style="flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;"></div>
+                <div class="sheet-body" style="flex:1; min-height:0; overflow:hidden; padding-bottom:4px; display:flex; flex-direction:column;"></div>
                 <div style="flex-shrink:0;">${buildPageFooterHTML(2, 2)}</div>
             `;
             return measurer.querySelector('.sheet-body');
@@ -3730,7 +3726,7 @@
             if (!container) return;
 
             const measurerBody = obterMedidorA4(container);
-            const maxBodyHeight = Math.max(200, measurerBody.clientHeight - 4);
+            const maxBodyHeight = Math.max(200, measurerBody.clientHeight);
             const pages = [];
             let currentPageElements = [];
             let figureCounter = 1;
@@ -3779,10 +3775,8 @@
                 validBlocks.forEach((blk) => {
                     if (blk.type === 'paragraph') {
                         let textoRestante = (blk.text || '').trim();
-                        let ehContinuacao = false;
                         while (textoRestante) {
-                            const clsP = ehContinuacao ? 'doc-paragraph doc-paragraph-cont' : 'doc-paragraph';
-                            const fullHTML = `<p class="${clsP}">${formatInlineRichText(textoRestante)}</p>`;
+                            const fullHTML = `<p class="doc-paragraph">${formatInlineRichText(textoRestante)}</p>`;
                             if (caberNoMedidor(fullHTML)) {
                                 currentPageElements.push(fullHTML);
                                 anexarNoMedidor(fullHTML);
@@ -3803,7 +3797,7 @@
                                 }
                                 const rawRest = tokens.slice(mid).join('').trimStart();
                                 const { parte } = balancearMarcacaoQuebra(rawCand, rawRest);
-                                const candHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                                const candHTML = `<p class="doc-paragraph">${formatInlineRichText(parte)}</p>`;
                                 if (caberNoMedidor(candHTML)) {
                                     best = mid;
                                     low = mid + 1;
@@ -3824,7 +3818,7 @@
                                 while (cLow <= cHigh) {
                                     const cMid = (cLow + cHigh) >> 1;
                                     const { parte } = balancearMarcacaoQuebra(textoRestante.slice(0, cMid), textoRestante.slice(cMid));
-                                    const candHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                                    const candHTML = `<p class="doc-paragraph">${formatInlineRichText(parte)}</p>`;
                                     if (caberNoMedidor(candHTML)) {
                                         cBest = cMid;
                                         cLow = cMid + 1;
@@ -3833,10 +3827,9 @@
                                     }
                                 }
                                 const { parte, restante } = balancearMarcacaoQuebra(textoRestante.slice(0, cBest), textoRestante.slice(cBest));
-                                const partHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                                const partHTML = `<p class="doc-paragraph">${formatInlineRichText(parte)}</p>`;
                                 currentPageElements.push(partHTML);
                                 textoRestante = restante;
-                                ehContinuacao = true;
                                 if (textoRestante) pushCurrentPage();
                                 continue;
                             }
@@ -3844,12 +3837,11 @@
                             const rawParte = tokens.slice(0, best).join('').trimEnd();
                             const rawResto = tokens.slice(best).join('').trimStart();
                             const { parte, restante } = balancearMarcacaoQuebra(rawParte, rawResto);
-                            const partHTML = `<p class="${clsP}">${formatInlineRichText(parte)}</p>`;
+                            const partHTML = `<p class="doc-paragraph">${formatInlineRichText(parte)}</p>`;
                             currentPageElements.push(partHTML);
                             anexarNoMedidor(partHTML);
 
                             textoRestante = restante;
-                            ehContinuacao = true;
                             if (textoRestante) {
                                 pushCurrentPage();
                             }
