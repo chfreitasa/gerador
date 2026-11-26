@@ -232,10 +232,12 @@
         }
         .pc-icon-ferias { background: linear-gradient(135deg, var(--alupar-blue), var(--alupar-blue-dark)); }
         .pc-icon-rel { background: linear-gradient(135deg, var(--alupar-green), var(--alupar-green-dark)); }
+        .pc-icon-manut { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .portal-card h3 { margin: 4px 0 0; color: #1f2937; font-size: 1.12em; }
         .portal-card p { margin: 0; color: #64748b; font-size: .88em; line-height: 1.5; }
         .portal-card .pc-cta { margin-top: 8px; color: var(--alupar-blue); font-weight: 700; font-size: .85em; }
         .portal-card-rel .pc-cta { color: var(--alupar-green-dark); }
+        .portal-card-manut .pc-cta { color: #b45309; }
         @media (max-width: 640px) { .portal-card { padding: 20px 18px; } }
         
         /* LOGIN E AUTO-CADASTRO */
@@ -971,6 +973,13 @@
                 <h3>Gerador de Relatórios</h3>
                 <p>Emissão padronizada de documentos e relatórios técnicos em PDF oficial A4, com numeração sequencial automática e repositório compartilhado.</p>
                 <span class="pc-cta">Acessar módulo de relatórios →</span>
+            </button>
+
+            <button type="button" class="portal-card portal-card-manut" onclick="location.href='https://script.google.com/a/macros/alupar.com.br/s/AKfycbzJNs0kdLmPXA8GGWROoUYSdg3y8fKhKhahWBA94HCjY_t73KJJXhMrjbwJgHRA0p8Rtg/exec'">
+                <div class="pc-icon pc-icon-manut">🛠️</div>
+                <h3>Acompanhamento da Manutenção</h3>
+                <p>Painel de acompanhamento e controle das atividades de manutenção da Regional Nordeste.</p>
+                <span class="pc-cta">Acessar acompanhamento da manutenção →</span>
             </button>
         </div>
     </div>
@@ -2566,14 +2575,8 @@ function verificarRegrasCLTFerias(novoReg, lista) {
         return `Pela CLT (Art. 134, § 1º), as férias podem ser fracionadas em no máximo 3 períodos no ano (${anoIni}).`;
     }
 
-    const totalDiasNoAno = periodosNoAno.reduce((acc, p) => acc + (Number(p.dias) || 0), 0);
-    if (totalDiasNoAno > 30) {
-        return `Pela CLT, a soma dos períodos de férias em ${anoIni} não pode ultrapassar 30 dias (total ficaria em ${totalDiasNoAno} dias).`;
-    }
-
     const temPeriodo14 = periodosNoAno.some(p => Number(p.dias) >= 14);
-    const saldoRestante = 30 - totalDiasNoAno;
-    if (!temPeriodo14 && (periodosNoAno.length === 3 || saldoRestante < 14)) {
+    if (!temPeriodo14 && periodosNoAno.length === 3) {
         return `Pela CLT (Art. 134, § 1º), ao fracionar as férias em ${anoIni}, pelo menos um dos períodos deve ter 14 dias corridos ou mais.`;
     }
 
