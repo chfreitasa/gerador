@@ -1085,11 +1085,11 @@
                 <span class="pc-cta">Acessar Gestão de Ativos →</span>
             </button>
 
-            <button type="button" class="portal-card portal-card-sobreaviso" onclick="irParaSobreaviso()">
+            <button type="button" id="portalCardSobreaviso" class="portal-card portal-card-sobreaviso" onclick="irParaSobreaviso()">
                 <div class="pc-icon pc-icon-sobreaviso">🕒</div>
                 <h3>Acompanhamento de Sobreaviso <span id="portalBadgeSobreaviso" class="sb-pill-badge" style="display:none;">Ativo este mês</span></h3>
-                <p>Escala mensal de sobreaviso nas subestações e linhas (finais de semana e feriados), com total de horas e lembrete automático.</p>
-                <span class="pc-cta">Acessar escala de sobreaviso →</span>
+                <p id="portalDescSobreaviso">Escala mensal de sobreaviso nas subestações e linhas (finais de semana e feriados), com total de horas e lembrete automático.</p>
+                <span id="portalCtaSobreaviso" class="pc-cta">Acessar escala de sobreaviso →</span>
             </button>
         </div>
     </div>
@@ -2037,6 +2037,11 @@ function irParaGestaoAtivos() {
 }
 
 function irParaSobreaviso() {
+    if (!isAdmin()) {
+        alert('O módulo de Acompanhamento de Sobreaviso está em configuração e disponível apenas para Administradores no momento.');
+        irParaPortal();
+        return;
+    }
     mostrarPagina('page-sobreaviso');
     if (location.hash !== '#sobreaviso') location.hash = '#sobreaviso';
     inicializarSeletorSobreaviso();
@@ -2104,6 +2109,20 @@ async function navigate() {
     if (badgeSobreaviso) badgeSobreaviso.innerText = badge.innerText;
     const nomePortal = document.getElementById('portalNomeOperador');
     if (nomePortal) nomePortal.innerText = obterOperadorAtual();
+
+    const cardSobreaviso = document.getElementById('portalCardSobreaviso');
+    const ctaSobreaviso = document.getElementById('portalCtaSobreaviso');
+    if (cardSobreaviso) {
+        const restrito = !isAdmin();
+        cardSobreaviso.disabled = restrito;
+        cardSobreaviso.style.opacity = restrito ? '0.58' : '';
+        cardSobreaviso.style.cursor = restrito ? 'not-allowed' : '';
+        cardSobreaviso.style.transform = restrito ? 'none' : '';
+        cardSobreaviso.title = restrito ? 'Módulo em configuração — acesso temporariamente restrito a Administradores' : '';
+        if (ctaSobreaviso) {
+            ctaSobreaviso.innerText = restrito ? '🔒 Em configuração (somente Administradores)' : 'Acessar escala de sobreaviso →';
+        }
+    }
     atualizarAlertaSobreavisoPortal();
 
     // Após autenticar, o usuário escolhe o módulo no portal;
