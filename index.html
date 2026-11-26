@@ -1030,6 +1030,18 @@
                         <option value="SE BRD">SE BRD</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Projeto</label>
+                    <select id="reqUserProjeto">
+                        <option value="ETB">ETB</option>
+                        <option value="TBO">TBO</option>
+                        <option value="ETAP">ETAP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Celular</label>
+                    <input type="text" id="reqUserCelular" placeholder="Ex: (74) 9 9999-9999" autocomplete="tel">
+                </div>
                 <div class="error-msg" id="reqErrorMsg"></div>
                 <div class="success-msg" id="reqSuccessMsg"></div>
                 <button class="main-btn" id="btnEnviarSolicitacao" onclick="enviarSolicitacaoCadastro()">📨 Enviar Pedido de Aprovação</button>
@@ -1495,6 +1507,18 @@
                     </select>
                 </div>
                 <div>
+                    <label>Projeto</label>
+                    <select id="novoUserProjeto">
+                        <option value="ETB">ETB</option>
+                        <option value="TBO">TBO</option>
+                        <option value="ETAP">ETAP</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Celular</label>
+                    <input type="text" id="novoUserCelular" placeholder="(74) 9 9999-9999" autocomplete="off">
+                </div>
+                <div>
                     <label>Senha Inicial</label>
                     <input type="text" id="novoUserSenha" placeholder="Mínimo 8 caracteres" autocomplete="off">
                 </div>
@@ -1572,6 +1596,7 @@ const API_URL = 'https://plataforma.nordeste.workers.dev'; // ex.: https://feria
 const ITERACOES_PBKDF2 = 150000;
 const LISTA_SETORES = ['TELECOM', 'SPCS', 'OPERAÇÃO', 'EAT', 'LT'];
 const LISTA_SES = ['SE JZT', 'SE GOR', 'SE OUR', 'SE BJD', 'SE SDS', 'SE RDE', 'SE RGD', 'SE JCT', 'SE JCD', 'SE BRA', 'SE BRD'];
+const LISTA_PROJETOS = ['ETB', 'TBO', 'ETAP'];
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const DIAS_SEMANA = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
@@ -2362,6 +2387,8 @@ async function enviarSolicitacaoCadastro() {
     const nomeCompleto = document.getElementById('reqUserNome').value.trim();
     const equipe = document.getElementById('reqUserEquipe').value;
     const subestacao = document.getElementById('reqUserSubestacao').value;
+    const projeto = document.getElementById('reqUserProjeto').value;
+    const celular = document.getElementById('reqUserCelular').value.trim();
     const erroEl = document.getElementById('reqErrorMsg');
     const sucessoEl = document.getElementById('reqSuccessMsg');
     const btn = document.getElementById('btnEnviarSolicitacao');
@@ -2369,7 +2396,7 @@ async function enviarSolicitacaoCadastro() {
     erroEl.innerText = '';
     sucessoEl.innerText = '';
 
-    if (!loginDesejado || !nomeCompleto || !equipe || !subestacao) {
+    if (!loginDesejado || !nomeCompleto || !equipe || !subestacao || !projeto || !celular) {
         erroEl.innerText = 'Preencha todos os campos para solicitar o acesso.';
         return;
     }
@@ -2379,6 +2406,10 @@ async function enviarSolicitacaoCadastro() {
     }
     if (nomeCompleto.length < 3 || !nomeCompleto.includes(' ')) {
         erroEl.innerText = 'Informe seu Nome Completo.';
+        return;
+    }
+    if (celular.length < 8) {
+        erroEl.innerText = 'Informe um número de Celular válido.';
         return;
     }
 
@@ -2391,12 +2422,13 @@ async function enviarSolicitacaoCadastro() {
         const r = await apiFetch('/api/solicitacao', {
             metodo: 'POST',
             comToken: false,
-            corpo: { login: loginDesejado, nome: nomeCompleto, setor: equipe, subestacao: subestacao }
+            corpo: { login: loginDesejado, nome: nomeCompleto, setor: equipe, subestacao: subestacao, projeto: projeto, celular: celular }
         });
 
         if (r.ok) {
             document.getElementById('reqUserLogin').value = '';
             document.getElementById('reqUserNome').value = '';
+            document.getElementById('reqUserCelular').value = '';
             sucessoEl.innerText = '✅ Solicitação enviada com sucesso! Assim que um Administrador aprovar seu cadastro, você poderá fazer login usando o seu usuário como senha inicial.';
         } else if (r.status === 429) {
             erroEl.innerText = 'Muitas solicitações enviadas. Aguarde alguns minutos antes de tentar novamente.';
@@ -3524,6 +3556,8 @@ async function aprovarSolicitacaoUsuario(idSolicitacao) {
         label: req.label || loginKey,
         setor: req.setor || 'TELECOM',
         subestacao: req.subestacao || 'SE JZT',
+        projeto: req.projeto || '',
+        celular: req.celular || '',
         role: 'user',
         senhaAlteradaPeloUsuario: false,
         aprovadoPor: obterOperadorAtual(),
@@ -3531,7 +3565,7 @@ async function aprovarSolicitacaoUsuario(idSolicitacao) {
     };
 
     dbCache.solicitacoes = solicitacoes.filter(s => s.id !== idSolicitacao);
-    registrarLog('APROVAÇÃO', `Aprovou a criação do usuário "${loginKey}" (${req.label} | ${req.setor} | ${req.subestacao}).`);
+    registrarLog('APROVAÇÃO', `Aprovou a criação do usuário "${loginKey}" (${req.label} | ${req.setor} | ${req.subestacao}${req.projeto ? ' | ' + req.projeto : ''}).`);
 
     await saveDB();
     aplicarLotacaoUsuarioNoFormulario();
@@ -3562,11 +3596,13 @@ async function criarNovoUsuario() {
     const nomeSobrenome = document.getElementById('novoUserNome').value.trim();
     const setorNovo = document.getElementById('novoUserSetor').value;
     const seNova = document.getElementById('novoUserSubestacao').value;
+    const projetoNovo = document.getElementById('novoUserProjeto').value;
+    const celularNovo = document.getElementById('novoUserCelular').value.trim();
     const senhaNova = document.getElementById('novoUserSenha').value.trim();
     const definirComoAdmin = isMaster() && document.getElementById('novoUserAdminCheck').checked;
 
-    if (!loginNovo || !nomeSobrenome || !setorNovo || !seNova || !senhaNova) {
-        return mostrarErroUsuario("Preencha login, nome e sobrenome, equipe, subestação e senha inicial.");
+    if (!loginNovo || !nomeSobrenome || !setorNovo || !seNova || !projetoNovo || !senhaNova) {
+        return mostrarErroUsuario("Preencha login, nome completo, equipe, subestação, projeto e senha inicial.");
     }
     if (loginNovo.length < 3) {
         return mostrarErroUsuario("O usuário (login) deve ter pelo menos 3 caracteres.");
@@ -3596,6 +3632,8 @@ async function criarNovoUsuario() {
         label: nomeSobrenome,
         setor: setorNovo,
         subestacao: seNova,
+        projeto: projetoNovo,
+        celular: celularNovo,
         role: roleAtribuida,
         senhaAlteradaPeloUsuario: false,
         criadoPor: obterOperadorAtual(),
@@ -3606,10 +3644,11 @@ async function criarNovoUsuario() {
         dbCache.solicitacoes = dbCache.solicitacoes.filter(s => (s.login || '').toLowerCase() !== loginNovo);
     }
 
-    registrarLog('USUÁRIO', `Criou o usuário "${loginNovo}" (${nomeSobrenome} | ${setorNovo} | ${seNova}) com perfil [${roleAtribuida.toUpperCase()}]`);
+    registrarLog('USUÁRIO', `Criou o usuário "${loginNovo}" (${nomeSobrenome} | ${setorNovo} | ${seNova} | ${projetoNovo}) com perfil [${roleAtribuida.toUpperCase()}]`);
 
     document.getElementById('novoUserLogin').value = '';
     document.getElementById('novoUserNome').value = '';
+    document.getElementById('novoUserCelular').value = '';
     document.getElementById('novoUserSenha').value = '';
     document.getElementById('novoUserAdminCheck').checked = false;
 
@@ -3628,8 +3667,12 @@ async function salvarDadosUsuario(loginAlvo) {
 
     const selectSetor = document.getElementById(`editSetor_${loginAlvo}`);
     const selectSE = document.getElementById(`editSE_${loginAlvo}`);
+    const selectProjeto = document.getElementById(`editProjeto_${loginAlvo}`);
+    const inputCelular = document.getElementById(`editCelular_${loginAlvo}`);
     const novoSetor = selectSetor ? selectSetor.value : (alvo.setor || 'TELECOM');
     const novaSE = selectSE ? selectSE.value : (alvo.subestacao || 'SE JZT');
+    const novoProjeto = selectProjeto ? selectProjeto.value : (alvo.projeto || '');
+    const novoCelular = inputCelular ? inputCelular.value.trim() : (alvo.celular || '');
 
     let novoNome = alvo.label;
     let novaSenha = null;
@@ -3662,7 +3705,9 @@ async function salvarDadosUsuario(loginAlvo) {
         ...alvo,
         label: novoNome,
         setor: novoSetor,
-        subestacao: novaSE
+        subestacao: novaSE,
+        projeto: novoProjeto,
+        celular: novoCelular
     };
 
     if (trocouSenha) {
@@ -3752,6 +3797,8 @@ function renderListaUsuariosModal() {
                     <small style="color:#475569; font-weight:700;">(${escapeHtml(s.login)})</small>
                     <span class="badge-meta badge-setor" style="margin-left:4px;">${escapeHtml(s.setor || 'S/S')}</span>
                     <span class="badge-meta badge-se">${escapeHtml(s.subestacao || 'S/SE')}</span>
+                    ${s.projeto ? `<span class="badge-meta" style="background:#eef2ff;color:#3730a3;">${escapeHtml(s.projeto)}</span>` : ''}
+                    ${s.celular ? `<span style="font-size:0.78em; color:#334155; margin-left:6px;">📱 ${escapeHtml(s.celular)}</span>` : ''}
                     <div style="font-size:0.75em; color:#64748b; margin-top:3px;">🕒 Solicitado em: ${escapeHtml(s.solicitadoEm || '-')}</div>
                 </div>
                 <div style="display:flex; gap:8px;">
@@ -3784,6 +3831,8 @@ function renderListaUsuariosModal() {
         const loginSeguroJs = escapeHtml(loginKey).replace(/'/g, '&#39;');
         const setorAtual = u.setor || 'TELECOM';
         const seAtual = u.subestacao || 'SE JZT';
+        const projetoAtual = u.projeto || '';
+        const celularAtual = u.celular || '';
 
         const trocouSenha = u.senhaAlteradaPeloUsuario && u.hash;
         const pillSenhaStatus = trocouSenha
@@ -3796,6 +3845,10 @@ function renderListaUsuariosModal() {
 
         const opcoesSEHtml = LISTA_SES.map(se =>
             `<option value="${escapeHtml(se)}" ${se === seAtual ? 'selected' : ''}>${escapeHtml(se)}</option>`
+        ).join('');
+
+        const opcoesProjetoHtml = `<option value="">Projeto...</option>` + LISTA_PROJETOS.map(pj =>
+            `<option value="${escapeHtml(pj)}" ${pj === projetoAtual ? 'selected' : ''}>${escapeHtml(pj)}</option>`
         ).join('');
 
         let botoesHtml = '';
@@ -3828,6 +3881,8 @@ function renderListaUsuariosModal() {
                         <span class="role-pill ${roleClass}" style="margin-left:6px;">${roleLabel}</span>
                         <span class="badge-meta badge-setor" style="margin-left:4px;">${escapeHtml(setorAtual)}</span>
                         <span class="badge-meta badge-se">${escapeHtml(seAtual)}</span>
+                        ${projetoAtual ? `<span class="badge-meta" style="background:#eef2ff;color:#3730a3;">${escapeHtml(projetoAtual)}</span>` : ''}
+                        ${celularAtual ? `<small style="color:#475569; margin-left:6px;">📱 ${escapeHtml(celularAtual)}</small>` : ''}
                         ${pillSenhaStatus}
                     </div>
                     <div style="display:flex; gap:8px; align-items:center;">
@@ -3840,6 +3895,8 @@ function renderListaUsuariosModal() {
                         ${camposMasterNomeSenha}
                         <select class="inp-lot-master" id="editSetor_${loginKey}" title="Equipe / Setor">${opcoesSetorHtml}</select>
                         <select class="inp-lot-master" id="editSE_${loginKey}" title="Subestação">${opcoesSEHtml}</select>
+                        <select class="inp-lot-master" id="editProjeto_${loginKey}" title="Projeto">${opcoesProjetoHtml}</select>
+                        <input type="text" class="inp-lot-master" id="editCelular_${loginKey}" value="${escapeHtml(celularAtual)}" placeholder="Celular" title="Celular" style="min-width:125px;">
                         <button class="btn-save-pass-master" onclick="salvarDadosUsuario('${loginSeguroJs}')">💾 Salvar</button>
                     </div>
                 </div>
@@ -3965,16 +4022,20 @@ function obterLinhasSobreavisoMes(mesKey) {
             usuarioLogin: login,
             local: [u.subestacao, u.setor].filter(Boolean).join(' - ') || 'REGIONAL NORDESTE',
             colaborador: u.label || login,
-            empresa: 'ETB',
-            telefone: '',
+            empresa: u.projeto || 'ETB',
+            telefone: u.celular || '',
             dias: {}
         });
     });
 
-    // Mantém o nome sincronizado com o cadastro oficial do banco
+    // Mantém o nome, projeto e celular sincronizados com o cadastro oficial do banco
     lista.forEach(l => {
         const u = l.usuarioLogin && mapa[l.usuarioLogin];
-        if (u && u.label) l.colaborador = u.label;
+        if (u) {
+            if (u.label) l.colaborador = u.label;
+            if (u.projeto) l.empresa = u.projeto;
+            if (u.celular) l.telefone = u.celular;
+        }
     });
     return lista;
 }
