@@ -975,11 +975,52 @@
                 <span class="pc-cta">Acessar módulo de relatórios →</span>
             </button>
 
+            <button type="button" class="portal-card portal-card-manut" onclick="irParaGestaoAtivos()">
+                <div class="pc-icon pc-icon-manut">🛠️</div>
+                <h3>Gestão de Ativos</h3>
+                <p>Central de acesso aos módulos de acompanhamento da manutenção e monitoramento de ativos da Regional Nordeste.</p>
+                <span class="pc-cta">Acessar Gestão de Ativos →</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SUBPÁGINA: GESTÃO DE ATIVOS (MÓDULOS DE MANUTENÇÃO) -->
+<div id="page-ativos" class="page">
+    <header class="alupar-topbar">
+        <div class="topbar-content">
+            <div class="brand-group">
+                <a href="#portal" onclick="event.preventDefault(); irParaPortal();" class="alupar-logo" style="text-decoration:none; cursor:pointer;" title="Voltar ao portal de módulos">Al<span class="upar-bar">upar</span></a>
+                <div class="brand-divider"></div>
+                <h1 class="page-title">Gestão de Ativos - Regional Nordeste</h1>
+            </div>
+            <div class="user-session-box">
+                <span class="operator-badge" id="badgeOperadorAtivos">👤 Operador</span>
+                <button class="btn-top-action" onclick="irParaPortal()" title="Voltar ao portal de módulos">🧭 Módulos</button>
+                <button class="btn-logout" onclick="fazerLogout()">Sair 🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="portal-wrap">
+        <div class="portal-saudacao">
+            <h2>Gestão de Ativos</h2>
+            <p>Selecione qual módulo específico de acompanhamento e manutenção deseja acessar:</p>
+        </div>
+
+        <div class="portal-grid">
             <button type="button" class="portal-card portal-card-manut" onclick="location.href='https://script.google.com/a/macros/alupar.com.br/s/AKfycbzJNs0kdLmPXA8GGWROoUYSdg3y8fKhKhahWBA94HCjY_t73KJJXhMrjbwJgHRA0p8Rtg/exec'">
                 <div class="pc-icon pc-icon-manut">🛠️</div>
-                <h3>Acompanhamento da Manutenção</h3>
+                <h3>Acompanhamento de Manutenção</h3>
                 <p>Painel de acompanhamento e controle das atividades de manutenção da Regional Nordeste.</p>
-                <span class="pc-cta">Acessar acompanhamento da manutenção →</span>
+                <span class="pc-cta">Acessar Acompanhamento de Manutenção →</span>
+            </button>
+
+            <button type="button" class="portal-card" onclick="location.href='https://script.google.com/a/macros/alupar.com.br/s/AKfycbzi0iY74hVzyadJrjKYg_kR1fnHJ8fUvxq1oQUXEBm3iVRoVurmtiaSCnCUYIh7WF0m/exec'">
+                <div class="pc-icon pc-icon-ferias">🛢️</div>
+                <h3>Monitoramento de Óleo</h3>
+                <p>Acompanhamento e análise do monitoramento de óleo isolante dos equipamentos das subestações.</p>
+                <span class="pc-cta">Acessar Monitoramento de Óleo →</span>
             </button>
         </div>
     </div>
@@ -1728,6 +1769,12 @@ function irParaPortal() {
     window.scrollTo(0, 0);
 }
 
+function irParaGestaoAtivos() {
+    mostrarPagina('page-ativos');
+    if (location.hash !== '#ativos') location.hash = '#ativos';
+    window.scrollTo(0, 0);
+}
+
 async function navigate() {
     // Tela de configuração/migração (uso exclusivo do responsável; o Worker exige o Token de Configuração)
     if (location.hash === '#configuracao') {
@@ -1782,13 +1829,17 @@ async function navigate() {
     // Sincroniza os selos do portal com os dados oficiais da sessão
     const badgePortal = document.getElementById('badgeOperadorPortal');
     if (badgePortal) badgePortal.innerText = badge.innerText;
+    const badgeAtivos = document.getElementById('badgeOperadorAtivos');
+    if (badgeAtivos) badgeAtivos.innerText = badge.innerText;
     const nomePortal = document.getElementById('portalNomeOperador');
     if (nomePortal) nomePortal.innerText = obterOperadorAtual();
 
     // Após autenticar, o usuário escolhe o módulo no portal;
-    // quem já estava no módulo de férias (#ferias) vai direto para ele.
+    // quem já estava no módulo de férias (#ferias) ou gestão de ativos (#ativos) vai direto para ele.
     if (location.hash === '#ferias') {
         irParaFerias();
+    } else if (location.hash === '#ativos') {
+        irParaGestaoAtivos();
     } else {
         irParaPortal();
     }
