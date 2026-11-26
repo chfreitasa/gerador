@@ -1212,8 +1212,6 @@
                 <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
                     <button type="button" class="btn-export csv" onclick="exportarSobreavisoCSV()">📊 Exportar CSV</button>
                     <button type="button" id="btnSbDuplicar" class="btn-export audit" style="display:none; background:#6366f1;" onclick="duplicarMesAnteriorSobreaviso()">📋 Duplicar Mês Anterior</button>
-                    <button type="button" id="btnSbPadrao" class="btn-export users" style="display:none; background:#0284c7;" onclick="importarEquipePadraoSobreaviso()">📥 Carregar Equipe Padrão</button>
-                    <button type="button" id="btnSbAddLinha" class="btn-export users" style="display:none;" onclick="abrirModalLinhaSobreaviso()">➕ Adicionar Colaborador</button>
                     <button type="button" id="btnSbSalvar" class="btn-export csv" style="display:none; background:#009E0F;" onclick="salvarEscalaSobreavisoMes()">💾 Salvar Escala do Mês</button>
                 </div>
             </div>
@@ -1248,42 +1246,6 @@
     <button type="button" onclick="preencherFdsSobreaviso()">⚡ FDS completo (5 / 24 / 19)</button>
     <button type="button" onclick="definirValorCelulaSobreaviso('FÉRIAS')">🟥 FÉRIAS</button>
     <button type="button" onclick="definirValorCelulaSobreaviso('')">🧹 Limpar dia</button>
-</div>
-
-<!-- MODAL ADICIONAR / EDITAR LINHA DE SOBREAVISO (ADMIN) -->
-<div class="modal-overlay" id="modalLinhaSobreaviso">
-    <div class="modal-card" style="max-width: 480px;">
-        <div class="modal-header">
-            <h3 id="tituloModalLinhaSb">➕ Adicionar Colaborador na Escala</h3>
-            <button class="modal-close" onclick="fecharModalLinhaSobreaviso()">×</button>
-        </div>
-        <div class="modal-body" style="display:flex; flex-direction:column; gap:10px;">
-            <div class="form-group" style="margin:0;">
-                <label>Local / Instalação</label>
-                <input type="text" id="sbInputLocal" placeholder="Ex: SE OUROLÂNDIA - ETB">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label>Colaborador</label>
-                <input type="text" id="sbInputColab" placeholder="Nome completo">
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div class="form-group" style="margin:0;">
-                    <label>Empresa</label>
-                    <select id="sbInputEmpresa">
-                        <option value="ETAP">ETAP</option>
-                        <option value="ETB">ETB</option>
-                        <option value="STN">STN</option>
-                        <option value="TBO">TBO</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin:0;">
-                    <label>Telefone</label>
-                    <input type="text" id="sbInputTelefone" placeholder="(74) 9 9999-9999">
-                </div>
-            </div>
-            <button type="button" class="main-btn" style="margin-top:6px;" onclick="confirmarLinhaSobreaviso()">Salvar Colaborador na Lista</button>
-        </div>
-    </div>
 </div>
 
 <!-- TELA PRINCIPAL: GESTÃO DE FÉRIAS -->
@@ -3949,46 +3911,6 @@ async function aplicarLogoAluparDrive() {
 // ==========================================
 let sbAlteracoesPendentes = false;
 let sbCelulaAtiva = null;
-let sbEditandoLinhaId = null;
-
-const EQUIPE_PADRAO_SOBREAVISO = [
-    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'FRANCISCO NETO', empresa: 'ETAP', telefone: '(84) 9 9124-9570' },
-    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'SEBASTIÃO NETO', empresa: 'ETAP', telefone: '(84) 9 9444-0977' },
-    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'LUAN NASCIMENTO', empresa: 'ETAP', telefone: '(84) 9 9122 5034' },
-    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'JORDANN MAX', empresa: 'ETAP', telefone: '(84) 9 9442-0023' },
-    { local: 'EQUIPE LT\nJ CAMARA - ETAP', colaborador: 'DIELLYSON CAMPELO', empresa: 'ETAP', telefone: '(84) 9 9443-1176' },
-    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'CARLOS ALENCAR', empresa: 'ETB', telefone: '(87) 98825-6172' },
-    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'TALES LOPES', empresa: 'ETB', telefone: '(73) 9 9919-6382' },
-    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'JOSENIR QUEIROZ', empresa: 'ETB', telefone: '(73) 99919-6382' },
-    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'NATANAEL RIBEIRO', empresa: 'ETB', telefone: '(87) 9 8856-6808' },
-    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'MAYARA ALENCAR', empresa: 'ETB', telefone: '(74) 98802-5883' },
-    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'DANIEL PASSOS', empresa: 'ETB', telefone: '(74) 99941-4767' },
-    { local: 'EQUIP. MLT JZT', colaborador: 'CLEISON FERREIRA', empresa: 'ETB', telefone: '(77) 99856-1769' },
-    { local: 'EQUIP. MLT JZT', colaborador: 'MARIO JÚNIOR', empresa: 'ETB', telefone: '(74) 9 8103-7654' },
-    { local: 'SE OUROLÂNDIA - ETB', colaborador: 'MAILSON PEREIRA', empresa: 'ETB', telefone: '(73) 9 9906-1558' },
-    { local: 'SE OUROLÂNDIA - ETB', colaborador: 'ARTENIVALDO MIRANDA', empresa: 'ETB', telefone: '(73) 9 9906-1558' },
-    { local: 'EQUIPE LT OUROLÂNDIA - ETB', colaborador: 'DANILO BARRETO', empresa: 'ETB', telefone: '(74) 9 9929-6328' },
-    { local: 'SE GENTIO DO OURO - ETB', colaborador: 'MATHEUS SILVA OLIVEIRA', empresa: 'ETB', telefone: '(74) 9 9192-3120' },
-    { local: 'SE GENTIO DO OURO - ETB', colaborador: 'TIAGO GOMES NUNES', empresa: 'ETB', telefone: '(74) 9 9962-7151' },
-    { local: 'EQUIPE LT\nGENTIL DO OURO - ETB', colaborador: 'JOÃO OLIVEIRA', empresa: 'ETB', telefone: '(86) 99557-6879' },
-    { local: 'EQUIPE LT\nGENTIL DO OURO - ETB', colaborador: 'EDIMILSON ARAÚJO', empresa: 'ETB', telefone: '(65) 99915-0026' },
-    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'ALTAMIR DE JESUS', empresa: 'ETB', telefone: '(77) 9 9957-5836' },
-    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'MILTON MARTINS', empresa: 'ETB', telefone: '(77) 9 9157-5052' },
-    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'SAULO CORDEIRO', empresa: 'ETB', telefone: '(77) 9 9163-4705' },
-    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'EBERT DOS SANTOS', empresa: 'ETB', telefone: '(73) 9 9950-8427' },
-    { local: 'EQUIPE MLT\nBOM JESUS - ETB', colaborador: 'CHARLES ALVES', empresa: 'ETB', telefone: '(77) 9 9868-4057' },
-    { local: 'EQUIPE MLT\nBOM JESUS - ETB', colaborador: 'FABIO LUIZ GUEDES SILVA', empresa: 'ETB', telefone: '(73) 9 99919-8850' },
-    { local: 'EQUIPE STN\nSE PCT', colaborador: 'JOSÉ AURELIO OLIVEIRA', empresa: 'STN', telefone: '(81) 9 9728-6776' },
-    { local: 'EQUIPE STN\nSE PCT', colaborador: 'EMILY OLIVEIRA', empresa: 'STN', telefone: '(69) 9 9347-7066' },
-    { local: 'SE BARREIRAS I E II', colaborador: 'ISABELA EULÁLIA', empresa: 'TBO', telefone: '(77) 9 9943-9715' },
-    { local: 'SE BARREIRAS I E II', colaborador: 'EGILARDIO FABERIO', empresa: 'TBO', telefone: '(77) 9 8142-4949' },
-    { local: 'SE RIO GRANDE', colaborador: 'EDUARDO PEREIRA', empresa: 'TBO', telefone: '(77) 99950-1294' },
-    { local: 'SE RIO GRANDE', colaborador: 'HALEF MESSIAS', empresa: 'TBO', telefone: '(77) 99952-4037' },
-    { local: 'SE RIO DAS EGUAS', colaborador: 'PAULO ANTONIO', empresa: 'TBO', telefone: '(77) 99950-1294' },
-    { local: 'SE RIO DAS EGUAS', colaborador: 'MARCIO GOMES', empresa: 'TBO', telefone: '(77) 99981-3498' },
-    { local: 'EQUIPE LT RIO DAS ÉGUAS - TBO', colaborador: 'FRANSCISCO YTALLO', empresa: 'TBO', telefone: '(86) 99911-0741' },
-    { local: 'EQUIPE LT RIO DAS ÉGUAS - TBO', colaborador: 'ALTENIR JOSÉ', empresa: 'TBO', telefone: '(62) 99623-1907' }
-];
 
 function normalizarTextoComparacaoSb(s) {
     return String(s || '')
@@ -4018,21 +3940,88 @@ function obterMesKeySobreaviso() {
 function obterLinhasSobreavisoMes(mesKey) {
     if (!dbCache.sobreaviso || typeof dbCache.sobreaviso !== 'object') dbCache.sobreaviso = {};
     if (!Array.isArray(dbCache.sobreaviso[mesKey])) dbCache.sobreaviso[mesKey] = [];
-    return dbCache.sobreaviso[mesKey];
+    const lista = dbCache.sobreaviso[mesKey];
+    const mapa = obterMapaUsuarios();
+    const loginsExistentes = new Set(lista.map(l => String(l.usuarioLogin || '').toLowerCase().trim()).filter(Boolean));
+    const loginsBanco = Object.keys(mapa)
+        .filter(k => k !== 'alupar')
+        .sort((a, b) => {
+            const locA = `${mapa[a].subestacao || ''} ${mapa[a].setor || ''}`;
+            const locB = `${mapa[b].subestacao || ''} ${mapa[b].setor || ''}`;
+            return locA.localeCompare(locB, 'pt-BR') || (mapa[a].label || a).localeCompare(mapa[b].label || b, 'pt-BR');
+        });
+
+    loginsBanco.forEach((login, idx) => {
+        if (loginsExistentes.has(login)) return;
+        const u = mapa[login];
+        const porNome = lista.find(l => !l.usuarioLogin && normalizarTextoComparacaoSb(l.colaborador) === normalizarTextoComparacaoSb(u.label || login));
+        if (porNome) {
+            porNome.usuarioLogin = login;
+            porNome.colaborador = u.label || login;
+            return;
+        }
+        lista.push({
+            id: `sb_${login}`,
+            usuarioLogin: login,
+            local: [u.subestacao, u.setor].filter(Boolean).join(' - ') || 'REGIONAL NORDESTE',
+            colaborador: u.label || login,
+            empresa: 'ETB',
+            telefone: '',
+            dias: {}
+        });
+    });
+
+    // Mantém o nome sincronizado com o cadastro oficial do banco
+    lista.forEach(l => {
+        const u = l.usuarioLogin && mapa[l.usuarioLogin];
+        if (u && u.label) l.colaborador = u.label;
+    });
+    return lista;
 }
 
 function ehMinhaLinhaSobreaviso(linha) {
+    if (!linha) return false;
+    const loginAtual = obterLoginAtual();
+    const loginLinha = String(linha.usuarioLogin || '').toLowerCase().trim();
+    if (loginAtual && loginLinha) return loginAtual === loginLinha;
+
     const meuNome = normalizarTextoComparacaoSb(obterOperadorAtual());
-    const colab = normalizarTextoComparacaoSb(linha && linha.colaborador);
+    const colab = normalizarTextoComparacaoSb(linha.colaborador);
     if (!meuNome || !colab) return false;
     if (meuNome === colab) return true;
-    // Correspondência por primeiro e último nome quando o usuário usa nome completo
     const pMe = meuNome.split(' ').filter(Boolean);
     const pCol = colab.split(' ').filter(Boolean);
     if (pMe.length >= 2 && pCol.length >= 2) {
         return pMe[0] === pCol[0] && pMe[pMe.length - 1] === pCol[pCol.length - 1];
     }
     return false;
+}
+
+function encontrarLoginUsuarioPorNomeSb(nome) {
+    const mapa = obterMapaUsuarios();
+    const alvoNorm = normalizarTextoComparacaoSb(nome);
+    if (!alvoNorm) return '';
+    for (const login of Object.keys(mapa)) {
+        const u = mapa[login];
+        if (!u) continue;
+        if (normalizarTextoComparacaoSb(u.label || login) === alvoNorm) return login;
+    }
+    return '';
+}
+
+function editarCampoLinhaSobreaviso(linhaId, campo) {
+    if (!isAdmin()) return;
+    const mesKey = obterMesKeySobreaviso();
+    const linhas = obterLinhasSobreavisoMes(mesKey);
+    const alvo = linhas.find(l => String(l.id) === String(linhaId));
+    if (!alvo) return;
+    const rotulos = { local: 'Local / Instalação', empresa: 'Empresa (ETAP, ETB, STN, TBO)', telefone: 'Telefone' };
+    const atual = String(alvo[campo] || '');
+    const novo = prompt(`Editar ${rotulos[campo] || campo} de ${alvo.colaborador}:`, atual);
+    if (novo === null) return;
+    alvo[campo] = campo === 'empresa' ? novo.toUpperCase().trim() : novo.trim();
+    sbAlteracoesPendentes = true;
+    renderSobreaviso();
 }
 
 function obterResumoSobreavisoUsuarioMesAtual() {
@@ -4107,7 +4096,7 @@ function renderSobreaviso() {
     const feriados = obterFeriadosNacionaisBrasil(ano);
 
     // Visibilidade dos controles de Admin
-    ['btnSbDuplicar', 'btnSbPadrao', 'btnSbAddLinha', 'btnSbSalvar'].forEach(id => {
+    ['btnSbDuplicar', 'btnSbSalvar'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = adminAtivo ? 'inline-flex' : 'none';
     });
@@ -4224,17 +4213,16 @@ function renderSobreaviso() {
 
             const acoesTd = adminAtivo
                 ? `<td style="white-space:nowrap;">
-                        <button type="button" class="btn-icon edit" style="width:26px;height:26px;font-size:0.8em;" onclick="abrirModalLinhaSobreaviso('${escapeHtml(l.id)}')" title="Editar colaborador">✏️</button>
                         <button type="button" class="btn-icon delete" style="width:26px;height:26px;font-size:0.8em;" onclick="removerLinhaSobreaviso('${escapeHtml(l.id)}')" title="Remover linha">✖</button>
                    </td>`
                 : '';
 
             html += `
                 <tr class="${ehEu ? 'sb-row-me' : ''}">
-                    <td class="sb-col-local">${escapeHtml(l.local || '')}</td>
+                    <td class="sb-col-local" ${adminAtivo ? `style="cursor:pointer;" title="Clique para editar o Local" onclick="editarCampoLinhaSobreaviso('${escapeHtml(l.id)}', 'local')"` : ''}>${escapeHtml(l.local || '')}</td>
                     <td class="sb-col-colab">${escapeHtml(l.colaborador || '')}${ehEu ? ' <span class="sb-pill-badge">Você</span>' : ''}</td>
-                    <td class="sb-col-emp">${escapeHtml(l.empresa || '')}</td>
-                    <td class="sb-col-tel">${escapeHtml(l.telefone || '')}</td>
+                    <td class="sb-col-emp" ${adminAtivo ? `style="cursor:pointer;" title="Clique para editar a Empresa" onclick="editarCampoLinhaSobreaviso('${escapeHtml(l.id)}', 'empresa')"` : ''}>${escapeHtml(l.empresa || '')}</td>
+                    <td class="sb-col-tel" ${adminAtivo ? `style="cursor:pointer;" title="Clique para editar o Telefone" onclick="editarCampoLinhaSobreaviso('${escapeHtml(l.id)}', 'telefone')"` : ''}>${escapeHtml(l.telefone || '')}</td>
                     ${tdsDias}
                     <td class="sb-col-total">${totalColab}</td>
                     ${acoesTd}
@@ -4330,6 +4318,7 @@ function duplicarMesAnteriorSobreaviso() {
     }
     dbCache.sobreaviso[mesKey] = origem.map((l, idx) => ({
         id: `sb_${Date.now()}_${idx}`,
+        usuarioLogin: l.usuarioLogin || encontrarLoginUsuarioPorNomeSb(l.colaborador),
         local: l.local || '',
         colaborador: l.colaborador || '',
         empresa: l.empresa || 'ETB',
@@ -4337,78 +4326,6 @@ function duplicarMesAnteriorSobreaviso() {
         dias: {}
     }));
     sbAlteracoesPendentes = true;
-    renderSobreaviso();
-}
-
-function importarEquipePadraoSobreaviso() {
-    if (!isAdmin()) return;
-    const mesKey = obterMesKeySobreaviso();
-    const atuais = obterLinhasSobreavisoMes(mesKey);
-    if (atuais.length > 0 && !confirm(`Já existem ${atuais.length} linha(s) neste mês. Deseja substituir pela equipe padrão da Regional Nordeste?`)) {
-        return;
-    }
-    dbCache.sobreaviso[mesKey] = EQUIPE_PADRAO_SOBREAVISO.map((item, idx) => ({
-        id: `sb_${Date.now()}_${idx}`,
-        local: item.local,
-        colaborador: item.colaborador,
-        empresa: item.empresa,
-        telefone: item.telefone,
-        dias: {}
-    }));
-    sbAlteracoesPendentes = true;
-    renderSobreaviso();
-}
-
-function abrirModalLinhaSobreaviso(linhaId = null) {
-    if (!isAdmin()) return;
-    sbEditandoLinhaId = linhaId;
-    const mesKey = obterMesKeySobreaviso();
-    const linhas = obterLinhasSobreavisoMes(mesKey);
-    const alvo = linhaId ? linhas.find(l => String(l.id) === String(linhaId)) : null;
-
-    document.getElementById('tituloModalLinhaSb').innerText = alvo ? '✏️ Editar Colaborador na Escala' : '➕ Adicionar Colaborador na Escala';
-    document.getElementById('sbInputLocal').value = alvo ? (alvo.local || '') : '';
-    document.getElementById('sbInputColab').value = alvo ? (alvo.colaborador || '') : '';
-    document.getElementById('sbInputEmpresa').value = alvo ? (alvo.empresa || 'ETB') : 'ETB';
-    document.getElementById('sbInputTelefone').value = alvo ? (alvo.telefone || '') : '';
-    document.getElementById('modalLinhaSobreaviso').classList.add('open');
-}
-
-function fecharModalLinhaSobreaviso() {
-    document.getElementById('modalLinhaSobreaviso').classList.remove('open');
-    sbEditandoLinhaId = null;
-}
-
-function confirmarLinhaSobreaviso() {
-    if (!isAdmin()) return;
-    const local = document.getElementById('sbInputLocal').value.trim();
-    const colaborador = document.getElementById('sbInputColab').value.trim();
-    const empresa = document.getElementById('sbInputEmpresa').value;
-    const telefone = document.getElementById('sbInputTelefone').value.trim();
-    if (!local || !colaborador) return alert('Informe o Local/Instalação e o Colaborador.');
-
-    const mesKey = obterMesKeySobreaviso();
-    const linhas = obterLinhasSobreavisoMes(mesKey);
-    if (sbEditandoLinhaId) {
-        const alvo = linhas.find(l => String(l.id) === String(sbEditandoLinhaId));
-        if (alvo) {
-            alvo.local = local;
-            alvo.colaborador = colaborador;
-            alvo.empresa = empresa;
-            alvo.telefone = telefone;
-        }
-    } else {
-        linhas.push({
-            id: `sb_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-            local,
-            colaborador,
-            empresa,
-            telefone,
-            dias: {}
-        });
-    }
-    sbAlteracoesPendentes = true;
-    fecharModalLinhaSobreaviso();
     renderSobreaviso();
 }
 
