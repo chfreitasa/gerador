@@ -233,11 +233,112 @@
         .pc-icon-ferias { background: linear-gradient(135deg, var(--alupar-blue), var(--alupar-blue-dark)); }
         .pc-icon-rel { background: linear-gradient(135deg, var(--alupar-green), var(--alupar-green-dark)); }
         .pc-icon-manut { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .pc-icon-sobreaviso { background: linear-gradient(135deg, #6366f1, #4338ca); }
         .portal-card h3 { margin: 4px 0 0; color: #1f2937; font-size: 1.12em; }
         .portal-card p { margin: 0; color: #64748b; font-size: .88em; line-height: 1.5; }
         .portal-card .pc-cta { margin-top: 8px; color: var(--alupar-blue); font-weight: 700; font-size: .85em; }
         .portal-card-rel .pc-cta { color: var(--alupar-green-dark); }
         .portal-card-manut .pc-cta { color: #b45309; }
+        .portal-card-sobreaviso .pc-cta { color: #4338ca; }
+        .portal-alerta-sb {
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            border: 1.5px solid #818cf8;
+            border-left: 5px solid #4338ca;
+            color: #1e1b4b;
+            padding: 13px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            font-size: 0.9em;
+            line-height: 1.45;
+            display: none;
+        }
+        .sb-pill-badge {
+            display: inline-block;
+            background: #eef2ff;
+            color: #3730a3;
+            border: 1px solid #a5b4fc;
+            font-size: 0.72em;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-left: 6px;
+        }
+        .sb-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #fff;
+        }
+        .sb-table {
+            border-collapse: collapse;
+            width: max-content;
+            min-width: 100%;
+            font-size: 0.76em;
+        }
+        .sb-table th, .sb-table td {
+            border: 1px solid #cbd5e1;
+            padding: 5px 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .sb-table thead th {
+            background: var(--alupar-blue);
+            color: #fff;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .sb-table thead tr.sb-subhead th {
+            background: #eef4ff;
+            color: #1e3a8a;
+            font-size: 0.9em;
+        }
+        .sb-col-local { min-width: 190px; max-width: 240px; text-align: left !important; font-weight: 700; color: #1e3a8a; background: #f8fafc; white-space: pre-line; }
+        .sb-col-colab { min-width: 155px; text-align: left !important; font-weight: 700; color: #0f172a; white-space: nowrap; }
+        .sb-col-emp { min-width: 58px; font-weight: 700; color: #334155; }
+        .sb-col-tel { min-width: 120px; color: #475569; white-space: nowrap; }
+        .sb-col-day { min-width: 34px; cursor: default; font-weight: 700; position: relative; }
+        .sb-col-day.sb-editable { cursor: pointer; }
+        .sb-col-day.sb-editable:hover { outline: 2px solid var(--alupar-blue); outline-offset: -2px; }
+        .sb-day-fds { background: #fef3c7 !important; color: #92400e !important; }
+        .sb-day-feriado { background: #fee2e2 !important; color: #991b1b !important; }
+        .sb-day-sex { background: #e0f2fe !important; color: #075985 !important; }
+        .sb-val-5 { background: #dbeafe; color: #1e40af; }
+        .sb-val-24 { background: #dcfce7; color: #166534; }
+        .sb-val-19 { background: #e0e7ff; color: #3730a3; }
+        .sb-val-other { background: #f3e8ff; color: #6b21a8; }
+        .sb-val-ferias { background: #fee2e2; color: #b91c1c; font-size: 0.78em; }
+        .sb-row-me td { background-color: #eef2ff; }
+        .sb-row-me td.sb-val-5 { background: #bfdbfe; }
+        .sb-row-me td.sb-val-24 { background: #bbf7d0; }
+        .sb-row-me td.sb-val-19 { background: #c7d2fe; }
+        .sb-col-total { min-width: 68px; font-weight: 800; background: #f1f5f9; color: var(--alupar-blue); }
+        .sb-tfoot td { background: #e2e8f0; font-weight: 800; color: #0f172a; }
+        .sb-cell-popover {
+            position: fixed;
+            z-index: 3000;
+            background: #fff;
+            border: 1.5px solid var(--alupar-blue);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.22);
+            padding: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 195px;
+        }
+        .sb-cell-popover button {
+            text-align: left;
+            padding: 6px 9px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            font-size: 0.8em;
+            font-weight: 700;
+            cursor: pointer;
+            color: #1e293b;
+        }
+        .sb-cell-popover button:hover { background: #e0e7ff; border-color: #818cf8; }
         @media (max-width: 640px) { .portal-card { padding: 20px 18px; } }
         
         /* LOGIN E AUTO-CADASTRO */
@@ -960,6 +1061,8 @@
             <p>Selecione qual módulo do sistema deseja utilizar:</p>
         </div>
 
+        <div id="portalAlertaSobreaviso" class="portal-alerta-sb"></div>
+
         <div class="portal-grid">
             <button type="button" class="portal-card" onclick="irParaFerias()">
                 <div class="pc-icon pc-icon-ferias">🌴</div>
@@ -980,6 +1083,13 @@
                 <h3>Gestão de Ativos</h3>
                 <p>Central de acesso aos módulos de acompanhamento da manutenção e monitoramento de ativos da Regional Nordeste.</p>
                 <span class="pc-cta">Acessar Gestão de Ativos →</span>
+            </button>
+
+            <button type="button" class="portal-card portal-card-sobreaviso" onclick="irParaSobreaviso()">
+                <div class="pc-icon pc-icon-sobreaviso">🕒</div>
+                <h3>Acompanhamento de Sobreaviso <span id="portalBadgeSobreaviso" class="sb-pill-badge" style="display:none;">Ativo este mês</span></h3>
+                <p>Escala mensal de sobreaviso nas subestações e linhas (finais de semana e feriados), com total de horas e lembrete automático.</p>
+                <span class="pc-cta">Acessar escala de sobreaviso →</span>
             </button>
         </div>
     </div>
@@ -1022,6 +1132,156 @@
                 <p>Acompanhamento e análise do monitoramento de óleo isolante dos equipamentos das subestações.</p>
                 <span class="pc-cta">Acessar Monitoramento de Óleo →</span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- MÓDULO: ACOMPANHAMENTO DE SOBREAVISO -->
+<div id="page-sobreaviso" class="page">
+    <header class="alupar-topbar">
+        <div class="topbar-content">
+            <div class="brand-group">
+                <a href="#portal" onclick="event.preventDefault(); irParaPortal();" class="alupar-logo" style="text-decoration:none; cursor:pointer;" title="Voltar ao portal de módulos">Al<span class="upar-bar">upar</span></a>
+                <div class="brand-divider"></div>
+                <h1 class="page-title">Escala de Sobreaviso - Regional Nordeste</h1>
+            </div>
+            <div class="user-session-box">
+                <span class="operator-badge" id="badgeOperadorSobreaviso">👤 Operador</span>
+                <button class="btn-top-action" onclick="irParaPortal()" title="Voltar ao portal de módulos">🧭 Módulos</button>
+                <button class="btn-logout" onclick="fazerLogout()">Sair 🚪</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container" style="max-width: 1520px;">
+        <!-- LEMBRETE DO MÊS ATUAL PARA O USUÁRIO LOGADO -->
+        <div id="sbAlertaUsuario" class="portal-alerta-sb"></div>
+
+        <!-- CONTROLES DO MÊS, FILTROS E AÇÕES ADMIN -->
+        <div class="container-box">
+            <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px;">
+                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+                    <div class="form-group" style="margin:0; min-width:140px;">
+                        <label>📅 Mês</label>
+                        <select id="sbMes" onchange="renderSobreaviso()">
+                            <option value="01">Janeiro</option>
+                            <option value="02">Fevereiro</option>
+                            <option value="03">Março</option>
+                            <option value="04">Abril</option>
+                            <option value="05">Maio</option>
+                            <option value="06">Junho</option>
+                            <option value="07">Julho</option>
+                            <option value="08">Agosto</option>
+                            <option value="09">Setembro</option>
+                            <option value="10">Outubro</option>
+                            <option value="11">Novembro</option>
+                            <option value="12">Dezembro</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0; min-width:95px;">
+                        <label>📆 Ano</label>
+                        <select id="sbAno" onchange="renderSobreaviso()">
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0; min-width:180px;">
+                        <label>🔍 Buscar Colaborador / Local</label>
+                        <input type="text" id="sbBusca" placeholder="Nome ou instalação..." oninput="renderSobreaviso()">
+                    </div>
+                    <div class="form-group" style="margin:0; min-width:110px;">
+                        <label>🏢 Empresa</label>
+                        <select id="sbFiltroEmpresa" onchange="renderSobreaviso()">
+                            <option value="TODAS">Todas</option>
+                            <option value="ETAP">ETAP</option>
+                            <option value="ETB">ETB</option>
+                            <option value="STN">STN</option>
+                            <option value="TBO">TBO</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0; min-width:190px;">
+                        <label>📍 Instalação</label>
+                        <select id="sbFiltroLocal" onchange="renderSobreaviso()">
+                            <option value="TODOS">Todas as Instalações</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+                    <button type="button" class="btn-export csv" onclick="exportarSobreavisoCSV()">📊 Exportar CSV</button>
+                    <button type="button" id="btnSbDuplicar" class="btn-export audit" style="display:none; background:#6366f1;" onclick="duplicarMesAnteriorSobreaviso()">📋 Duplicar Mês Anterior</button>
+                    <button type="button" id="btnSbPadrao" class="btn-export users" style="display:none; background:#0284c7;" onclick="importarEquipePadraoSobreaviso()">📥 Carregar Equipe Padrão</button>
+                    <button type="button" id="btnSbAddLinha" class="btn-export users" style="display:none;" onclick="abrirModalLinhaSobreaviso()">➕ Adicionar Colaborador</button>
+                    <button type="button" id="btnSbSalvar" class="btn-export csv" style="display:none; background:#009E0F;" onclick="salvarEscalaSobreavisoMes()">💾 Salvar Escala do Mês</button>
+                </div>
+            </div>
+
+            <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; font-size:0.78em; color:#475569;">
+                <div>
+                    <strong>Legenda de horários:</strong>
+                    <span class="sb-val-5" style="padding:2px 6px; border-radius:4px; font-weight:700;">5h</span> Sexta / Véspera (19h às 23:59h) •
+                    <span class="sb-val-24" style="padding:2px 6px; border-radius:4px; font-weight:700;">24h</span> Sáb / Dom / Feriado (00h às 23:59h) •
+                    <span class="sb-val-19" style="padding:2px 6px; border-radius:4px; font-weight:700;">19h</span> Último dia (00h às 19:00h) •
+                    <span class="sb-val-ferias" style="padding:2px 6px; border-radius:4px; font-weight:700;">FÉRIAS</span>
+                </div>
+                <div id="sbStatusEdicao" style="font-weight:700;"></div>
+            </div>
+        </div>
+
+        <!-- TABELA DA ESCALA MENSAL -->
+        <div class="container-box" style="padding:12px;">
+            <div class="sb-table-wrap">
+                <table class="sb-table" id="sbTabelaEscala"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- POPOVER RÁPIDO PARA EDIÇÃO DE CÉLULA (ADMIN) -->
+<div id="sbCellPopover" class="sb-cell-popover">
+    <button type="button" onclick="definirValorCelulaSobreaviso('5')">🟦 5h (19h às 23:59h)</button>
+    <button type="button" onclick="definirValorCelulaSobreaviso('24')">🟩 24h (00h às 23:59h)</button>
+    <button type="button" onclick="definirValorCelulaSobreaviso('19')">🟪 19h (00h às 19:00h)</button>
+    <button type="button" onclick="definirValorCelulaSobreaviso('8')">🟪 8h (Parcial)</button>
+    <button type="button" onclick="preencherFdsSobreaviso()">⚡ FDS completo (5 / 24 / 19)</button>
+    <button type="button" onclick="definirValorCelulaSobreaviso('FÉRIAS')">🟥 FÉRIAS</button>
+    <button type="button" onclick="definirValorCelulaSobreaviso('')">🧹 Limpar dia</button>
+</div>
+
+<!-- MODAL ADICIONAR / EDITAR LINHA DE SOBREAVISO (ADMIN) -->
+<div class="modal-overlay" id="modalLinhaSobreaviso">
+    <div class="modal-card" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3 id="tituloModalLinhaSb">➕ Adicionar Colaborador na Escala</h3>
+            <button class="modal-close" onclick="fecharModalLinhaSobreaviso()">×</button>
+        </div>
+        <div class="modal-body" style="display:flex; flex-direction:column; gap:10px;">
+            <div class="form-group" style="margin:0;">
+                <label>Local / Instalação</label>
+                <input type="text" id="sbInputLocal" placeholder="Ex: SE OUROLÂNDIA - ETB">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label>Colaborador</label>
+                <input type="text" id="sbInputColab" placeholder="Nome completo">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;">
+                    <label>Empresa</label>
+                    <select id="sbInputEmpresa">
+                        <option value="ETAP">ETAP</option>
+                        <option value="ETB">ETB</option>
+                        <option value="STN">STN</option>
+                        <option value="TBO">TBO</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label>Telefone</label>
+                    <input type="text" id="sbInputTelefone" placeholder="(74) 9 9999-9999">
+                </div>
+            </div>
+            <button type="button" class="main-btn" style="margin-top:6px;" onclick="confirmarLinhaSobreaviso()">Salvar Colaborador na Lista</button>
         </div>
     </div>
 </div>
@@ -1511,7 +1771,8 @@ async function getDB() {
             logs: (rec && Array.isArray(rec.logs)) ? rec.logs : [],
             usuarios: (rec && rec.usuarios && typeof rec.usuarios === 'object') ? rec.usuarios : {},
             solicitacoes: (rec && Array.isArray(rec.solicitacoes)) ? rec.solicitacoes : [],
-            config: (rec && rec.config && typeof rec.config === 'object') ? rec.config : { feriasBloqueadas: false }
+            config: (rec && rec.config && typeof rec.config === 'object') ? rec.config : { feriasBloqueadas: false },
+            sobreaviso: (rec && rec.sobreaviso && typeof rec.sobreaviso === 'object') ? rec.sobreaviso : {}
         };
         dbCarregado = true;
     } catch (e) {
@@ -1775,6 +2036,14 @@ function irParaGestaoAtivos() {
     window.scrollTo(0, 0);
 }
 
+function irParaSobreaviso() {
+    mostrarPagina('page-sobreaviso');
+    if (location.hash !== '#sobreaviso') location.hash = '#sobreaviso';
+    inicializarSeletorSobreaviso();
+    renderSobreaviso();
+    window.scrollTo(0, 0);
+}
+
 async function navigate() {
     // Tela de configuração/migração (uso exclusivo do responsável; o Worker exige o Token de Configuração)
     if (location.hash === '#configuracao') {
@@ -1831,15 +2100,20 @@ async function navigate() {
     if (badgePortal) badgePortal.innerText = badge.innerText;
     const badgeAtivos = document.getElementById('badgeOperadorAtivos');
     if (badgeAtivos) badgeAtivos.innerText = badge.innerText;
+    const badgeSobreaviso = document.getElementById('badgeOperadorSobreaviso');
+    if (badgeSobreaviso) badgeSobreaviso.innerText = badge.innerText;
     const nomePortal = document.getElementById('portalNomeOperador');
     if (nomePortal) nomePortal.innerText = obterOperadorAtual();
+    atualizarAlertaSobreavisoPortal();
 
     // Após autenticar, o usuário escolhe o módulo no portal;
-    // quem já estava no módulo de férias (#ferias) ou gestão de ativos (#ativos) vai direto para ele.
+    // quem já estava no módulo de férias (#ferias), gestão de ativos (#ativos) ou sobreaviso (#sobreaviso) vai direto para ele.
     if (location.hash === '#ferias') {
         irParaFerias();
     } else if (location.hash === '#ativos') {
         irParaGestaoAtivos();
+    } else if (location.hash === '#sobreaviso') {
+        irParaSobreaviso();
     } else {
         irParaPortal();
     }
@@ -3649,6 +3923,553 @@ async function aplicarLogoAluparDrive() {
             aplicarSrc(r.dados.logos.ALUPAR_BRANCA || r.dados.logos.ALUPAR);
         }
     } catch (_) {}
+}
+
+// ==========================================
+// MÓDULO DE SOBREAVISO MENSAL
+// ==========================================
+let sbAlteracoesPendentes = false;
+let sbCelulaAtiva = null;
+let sbEditandoLinhaId = null;
+
+const EQUIPE_PADRAO_SOBREAVISO = [
+    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'FRANCISCO NETO', empresa: 'ETAP', telefone: '(84) 9 9124-9570' },
+    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'SEBASTIÃO NETO', empresa: 'ETAP', telefone: '(84) 9 9444-0977' },
+    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'LUAN NASCIMENTO', empresa: 'ETAP', telefone: '(84) 9 9122 5034' },
+    { local: 'JOÃO CAMARA\nSE JOÃO CAMARA II\nSE JOÃO CAMARA III', colaborador: 'JORDANN MAX', empresa: 'ETAP', telefone: '(84) 9 9442-0023' },
+    { local: 'EQUIPE LT\nJ CAMARA - ETAP', colaborador: 'DIELLYSON CAMPELO', empresa: 'ETAP', telefone: '(84) 9 9443-1176' },
+    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'CARLOS ALENCAR', empresa: 'ETB', telefone: '(87) 98825-6172' },
+    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'TALES LOPES', empresa: 'ETB', telefone: '(73) 9 9919-6382' },
+    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'JOSENIR QUEIROZ', empresa: 'ETB', telefone: '(73) 99919-6382' },
+    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'NATANAEL RIBEIRO', empresa: 'ETB', telefone: '(87) 9 8856-6808' },
+    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'MAYARA ALENCAR', empresa: 'ETB', telefone: '(74) 98802-5883' },
+    { local: 'JUAZEIRO DA BAHIA\nSE JUAZEIRO - ETB', colaborador: 'DANIEL PASSOS', empresa: 'ETB', telefone: '(74) 99941-4767' },
+    { local: 'EQUIP. MLT JZT', colaborador: 'CLEISON FERREIRA', empresa: 'ETB', telefone: '(77) 99856-1769' },
+    { local: 'EQUIP. MLT JZT', colaborador: 'MARIO JÚNIOR', empresa: 'ETB', telefone: '(74) 9 8103-7654' },
+    { local: 'SE OUROLÂNDIA - ETB', colaborador: 'MAILSON PEREIRA', empresa: 'ETB', telefone: '(73) 9 9906-1558' },
+    { local: 'SE OUROLÂNDIA - ETB', colaborador: 'ARTENIVALDO MIRANDA', empresa: 'ETB', telefone: '(73) 9 9906-1558' },
+    { local: 'EQUIPE LT OUROLÂNDIA - ETB', colaborador: 'DANILO BARRETO', empresa: 'ETB', telefone: '(74) 9 9929-6328' },
+    { local: 'SE GENTIO DO OURO - ETB', colaborador: 'MATHEUS SILVA OLIVEIRA', empresa: 'ETB', telefone: '(74) 9 9192-3120' },
+    { local: 'SE GENTIO DO OURO - ETB', colaborador: 'TIAGO GOMES NUNES', empresa: 'ETB', telefone: '(74) 9 9962-7151' },
+    { local: 'EQUIPE LT\nGENTIL DO OURO - ETB', colaborador: 'JOÃO OLIVEIRA', empresa: 'ETB', telefone: '(86) 99557-6879' },
+    { local: 'EQUIPE LT\nGENTIL DO OURO - ETB', colaborador: 'EDIMILSON ARAÚJO', empresa: 'ETB', telefone: '(65) 99915-0026' },
+    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'ALTAMIR DE JESUS', empresa: 'ETB', telefone: '(77) 9 9957-5836' },
+    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'MILTON MARTINS', empresa: 'ETB', telefone: '(77) 9 9157-5052' },
+    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'SAULO CORDEIRO', empresa: 'ETB', telefone: '(77) 9 9163-4705' },
+    { local: 'SE BOM JESUS DA LAPA II - SE SOL DO SERTÃO-ETB', colaborador: 'EBERT DOS SANTOS', empresa: 'ETB', telefone: '(73) 9 9950-8427' },
+    { local: 'EQUIPE MLT\nBOM JESUS - ETB', colaborador: 'CHARLES ALVES', empresa: 'ETB', telefone: '(77) 9 9868-4057' },
+    { local: 'EQUIPE MLT\nBOM JESUS - ETB', colaborador: 'FABIO LUIZ GUEDES SILVA', empresa: 'ETB', telefone: '(73) 9 99919-8850' },
+    { local: 'EQUIPE STN\nSE PCT', colaborador: 'JOSÉ AURELIO OLIVEIRA', empresa: 'STN', telefone: '(81) 9 9728-6776' },
+    { local: 'EQUIPE STN\nSE PCT', colaborador: 'EMILY OLIVEIRA', empresa: 'STN', telefone: '(69) 9 9347-7066' },
+    { local: 'SE BARREIRAS I E II', colaborador: 'ISABELA EULÁLIA', empresa: 'TBO', telefone: '(77) 9 9943-9715' },
+    { local: 'SE BARREIRAS I E II', colaborador: 'EGILARDIO FABERIO', empresa: 'TBO', telefone: '(77) 9 8142-4949' },
+    { local: 'SE RIO GRANDE', colaborador: 'EDUARDO PEREIRA', empresa: 'TBO', telefone: '(77) 99950-1294' },
+    { local: 'SE RIO GRANDE', colaborador: 'HALEF MESSIAS', empresa: 'TBO', telefone: '(77) 99952-4037' },
+    { local: 'SE RIO DAS EGUAS', colaborador: 'PAULO ANTONIO', empresa: 'TBO', telefone: '(77) 99950-1294' },
+    { local: 'SE RIO DAS EGUAS', colaborador: 'MARCIO GOMES', empresa: 'TBO', telefone: '(77) 99981-3498' },
+    { local: 'EQUIPE LT RIO DAS ÉGUAS - TBO', colaborador: 'FRANSCISCO YTALLO', empresa: 'TBO', telefone: '(86) 99911-0741' },
+    { local: 'EQUIPE LT RIO DAS ÉGUAS - TBO', colaborador: 'ALTENIR JOSÉ', empresa: 'TBO', telefone: '(62) 99623-1907' }
+];
+
+function normalizarTextoComparacaoSb(s) {
+    return String(s || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function inicializarSeletorSobreaviso() {
+    const selMes = document.getElementById('sbMes');
+    const selAno = document.getElementById('sbAno');
+    if (!selMes || !selAno) return;
+    if (!selMes.dataset.inicializado) {
+        const hoje = new Date();
+        selMes.value = String(hoje.getMonth() + 1).padStart(2, '0');
+        const anoStr = String(hoje.getFullYear());
+        if ([...selAno.options].some(o => o.value === anoStr)) selAno.value = anoStr;
+        selMes.dataset.inicializado = '1';
+    }
+}
+
+function obterMesKeySobreaviso() {
+    const mes = (document.getElementById('sbMes')?.value) || String(new Date().getMonth() + 1).padStart(2, '0');
+    const ano = (document.getElementById('sbAno')?.value) || String(new Date().getFullYear());
+    return `${ano}-${mes}`;
+}
+
+function obterLinhasSobreavisoMes(mesKey) {
+    if (!dbCache.sobreaviso || typeof dbCache.sobreaviso !== 'object') dbCache.sobreaviso = {};
+    if (!Array.isArray(dbCache.sobreaviso[mesKey])) dbCache.sobreaviso[mesKey] = [];
+    return dbCache.sobreaviso[mesKey];
+}
+
+function ehMinhaLinhaSobreaviso(linha) {
+    const meuNome = normalizarTextoComparacaoSb(obterOperadorAtual());
+    const colab = normalizarTextoComparacaoSb(linha && linha.colaborador);
+    if (!meuNome || !colab) return false;
+    if (meuNome === colab) return true;
+    // Correspondência por primeiro e último nome quando o usuário usa nome completo
+    const pMe = meuNome.split(' ').filter(Boolean);
+    const pCol = colab.split(' ').filter(Boolean);
+    if (pMe.length >= 2 && pCol.length >= 2) {
+        return pMe[0] === pCol[0] && pMe[pMe.length - 1] === pCol[pCol.length - 1];
+    }
+    return false;
+}
+
+function obterResumoSobreavisoUsuarioMesAtual() {
+    const hoje = new Date();
+    const mesKey = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+    const linhas = (dbCache.sobreaviso && Array.isArray(dbCache.sobreaviso[mesKey])) ? dbCache.sobreaviso[mesKey] : [];
+    const minhas = linhas.filter(ehMinhaLinhaSobreaviso);
+    if (!minhas.length) return null;
+
+    const escalas = [];
+    let totalHoras = 0;
+    minhas.forEach(linha => {
+        const diasObj = (linha.dias && typeof linha.dias === 'object') ? linha.dias : {};
+        const datas = [];
+        Object.keys(diasObj).sort().forEach(dia => {
+            const val = diasObj[dia];
+            if (val === undefined || val === null || val === '' || String(val).toUpperCase() === 'FÉRIAS') return;
+            const h = Number(val);
+            if (Number.isFinite(h) && h > 0) {
+                totalHoras += h;
+                datas.push(`${dia}/${String(hoje.getMonth() + 1).padStart(2, '0')} (${h}h)`);
+            }
+        });
+        if (datas.length > 0) {
+            escalas.push({
+                local: (linha.local || 'Instalação').replace(/\n/g, ' / '),
+                datas
+            });
+        }
+    });
+    if (!escalas.length) return null;
+    return {
+        mesNome: MESES[hoje.getMonth()],
+        ano: hoje.getFullYear(),
+        totalHoras,
+        escalas
+    };
+}
+
+function atualizarAlertaSobreavisoPortal() {
+    const resumo = obterResumoSobreavisoUsuarioMesAtual();
+    const boxPortal = document.getElementById('portalAlertaSobreaviso');
+    const pillPortal = document.getElementById('portalBadgeSobreaviso');
+    const boxModulo = document.getElementById('sbAlertaUsuario');
+
+    if (resumo) {
+        const detalhes = resumo.escalas
+            .map(e => `<strong>${escapeHtml(e.local)}</strong>: ${escapeHtml(e.datas.join(', '))}`)
+            .join('<br>');
+        const html = `
+            <div style="font-weight:800; margin-bottom:4px;">🔔 Lembrete de Sobreaviso — ${escapeHtml(resumo.mesNome)}/${resumo.ano} (Total: ${resumo.totalHoras}h)</div>
+            <div>${detalhes}</div>
+        `;
+        if (boxPortal) { boxPortal.innerHTML = html; boxPortal.style.display = 'block'; }
+        if (boxModulo) { boxModulo.innerHTML = html; boxModulo.style.display = 'block'; }
+        if (pillPortal) pillPortal.style.display = 'inline-block';
+    } else {
+        if (boxPortal) boxPortal.style.display = 'none';
+        if (boxModulo) boxModulo.style.display = 'none';
+        if (pillPortal) pillPortal.style.display = 'none';
+    }
+}
+
+function renderSobreaviso() {
+    inicializarSeletorSobreaviso();
+    const adminAtivo = isAdmin();
+    const mesKey = obterMesKeySobreaviso();
+    const [anoStr, mesStr] = mesKey.split('-');
+    const ano = Number(anoStr);
+    const mesIdx = Number(mesStr) - 1;
+    const qtdDias = new Date(ano, mesIdx + 1, 0).getDate();
+    const feriados = obterFeriadosNacionaisBrasil(ano);
+
+    // Visibilidade dos controles de Admin
+    ['btnSbDuplicar', 'btnSbPadrao', 'btnSbAddLinha', 'btnSbSalvar'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = adminAtivo ? 'inline-flex' : 'none';
+    });
+    const statusEl = document.getElementById('sbStatusEdicao');
+    if (statusEl) {
+        statusEl.innerText = adminAtivo
+            ? (sbAlteracoesPendentes ? '⚠️ Alterações pendentes — clique em "Salvar Escala do Mês"' : '✏️ Modo Admin: clique em qualquer dia para lançar horas')
+            : '👁️ Modo Visualização (somente Administradores editam)';
+        statusEl.style.color = (adminAtivo && sbAlteracoesPendentes) ? '#b45309' : '#475569';
+    }
+
+    atualizarAlertaSobreavisoPortal();
+
+    const linhasMes = obterLinhasSobreavisoMes(mesKey);
+    const selLocal = document.getElementById('sbFiltroLocal');
+    if (selLocal) {
+        const atualLocal = selLocal.value || 'TODOS';
+        const locaisUnicos = [...new Set(linhasMes.map(l => (l.local || '').trim()).filter(Boolean))];
+        selLocal.innerHTML = '<option value="TODOS">Todas as Instalações</option>' +
+            locaisUnicos.map(loc => `<option value="${escapeHtml(loc)}">${escapeHtml(loc.replace(/\n/g, ' / '))}</option>`).join('');
+        if ([...selLocal.options].some(o => o.value === atualLocal)) selLocal.value = atualLocal;
+    }
+
+    const busca = normalizarTextoComparacaoSb(document.getElementById('sbBusca')?.value || '');
+    const empFiltro = (document.getElementById('sbFiltroEmpresa')?.value || 'TODAS').toUpperCase();
+    const locFiltro = document.getElementById('sbFiltroLocal')?.value || 'TODOS';
+
+    const filtradas = linhasMes.filter(l => {
+        if (empFiltro !== 'TODAS' && String(l.empresa || '').toUpperCase() !== empFiltro) return false;
+        if (locFiltro !== 'TODOS' && String(l.local || '').trim() !== locFiltro) return false;
+        if (busca) {
+            const hay = normalizarTextoComparacaoSb(`${l.local || ''} ${l.colaborador || ''} ${l.empresa || ''}`);
+            if (!hay.includes(busca)) return false;
+        }
+        return true;
+    });
+
+    const tabela = document.getElementById('sbTabelaEscala');
+    if (!tabela) return;
+
+    // Cabeçalho dos dias
+    let thDias = '';
+    let thSem = '';
+    const diasMeta = [];
+    for (let d = 1; d <= qtdDias; d++) {
+        const diaPad = String(d).padStart(2, '0');
+        const dt = new Date(Date.UTC(ano, mesIdx, d));
+        const dow = dt.getUTCDay();
+        const chaveFer = `${mesStr}-${diaPad}`;
+        const nomeFer = feriados.get(chaveFer) || '';
+        const ehFds = dow === 0 || dow === 6;
+        const ehSex = dow === 5;
+        const clsDia = nomeFer ? 'sb-day-feriado' : (ehFds ? 'sb-day-fds' : (ehSex ? 'sb-day-sex' : ''));
+        diasMeta.push({ diaPad, clsDia, nomeFer });
+        thDias += `<th class="${clsDia}" title="${escapeHtml(nomeFer || DIAS_SEMANA[dow])}">${diaPad}</th>`;
+        thSem += `<th class="${clsDia}" title="${escapeHtml(nomeFer || DIAS_SEMANA[dow])}">${nomeFer ? 'FER' : DIAS_SEMANA[dow].toUpperCase()}</th>`;
+    }
+
+    let html = `
+        <thead>
+            <tr>
+                <th rowspan="2" style="min-width:190px;">LOCAL / INSTALAÇÃO</th>
+                <th rowspan="2" style="min-width:155px;">COLABORADOR</th>
+                <th rowspan="2" style="min-width:58px;">EMP.</th>
+                <th rowspan="2" style="min-width:120px;">TELEFONE</th>
+                ${thDias}
+                <th rowspan="2" style="min-width:68px;">TOTAL HORAS</th>
+                ${adminAtivo ? '<th rowspan="2" style="min-width:64px;">AÇÕES</th>' : ''}
+            </tr>
+            <tr class="sb-subhead">
+                ${thSem}
+            </tr>
+        </thead>
+        <tbody>
+    `;
+
+    const totaisPorDia = {};
+    diasMeta.forEach(dm => { totaisPorDia[dm.diaPad] = 0; });
+    let totalGeral = 0;
+
+    if (!filtradas.length) {
+        const cols = 4 + qtdDias + 1 + (adminAtivo ? 1 : 0);
+        html += `<tr><td colspan="${cols}" style="padding:24px; color:#64748b; font-weight:600;">Nenhum registro lançado para ${MESES[mesIdx]}/${ano}.${adminAtivo ? ' Use "Duplicar Mês Anterior", "Carregar Equipe Padrão" ou "Adicionar Colaborador".' : ''}</td></tr>`;
+    } else {
+        filtradas.forEach(l => {
+            const ehEu = ehMinhaLinhaSobreaviso(l);
+            const diasObj = (l.dias && typeof l.dias === 'object') ? l.dias : {};
+            let totalColab = 0;
+            let tdsDias = '';
+
+            diasMeta.forEach(dm => {
+                const rawVal = diasObj[dm.diaPad];
+                const strVal = rawVal !== undefined && rawVal !== null ? String(rawVal).trim().toUpperCase() : '';
+                let clsVal = dm.clsDia;
+                if (strVal === 'FÉRIAS' || strVal === 'FERIAS') {
+                    clsVal = 'sb-val-ferias';
+                } else if (strVal !== '') {
+                    const num = Number(strVal);
+                    if (Number.isFinite(num) && num > 0) {
+                        totalColab += num;
+                        totaisPorDia[dm.diaPad] += num;
+                        totalGeral += num;
+                        if (num === 5) clsVal = 'sb-val-5';
+                        else if (num === 24) clsVal = 'sb-val-24';
+                        else if (num === 19) clsVal = 'sb-val-19';
+                        else clsVal = 'sb-val-other';
+                    }
+                }
+                const editAttrs = adminAtivo
+                    ? `class="sb-col-day sb-editable ${clsVal}" onclick="abrirPopoverCelulaSobreaviso(event, '${escapeHtml(l.id)}', '${dm.diaPad}')"`
+                    : `class="sb-col-day ${clsVal}"`;
+                tdsDias += `<td ${editAttrs}>${escapeHtml(strVal === 'FERIAS' ? 'FÉRIAS' : strVal)}</td>`;
+            });
+
+            const acoesTd = adminAtivo
+                ? `<td style="white-space:nowrap;">
+                        <button type="button" class="btn-icon edit" style="width:26px;height:26px;font-size:0.8em;" onclick="abrirModalLinhaSobreaviso('${escapeHtml(l.id)}')" title="Editar colaborador">✏️</button>
+                        <button type="button" class="btn-icon delete" style="width:26px;height:26px;font-size:0.8em;" onclick="removerLinhaSobreaviso('${escapeHtml(l.id)}')" title="Remover linha">✖</button>
+                   </td>`
+                : '';
+
+            html += `
+                <tr class="${ehEu ? 'sb-row-me' : ''}">
+                    <td class="sb-col-local">${escapeHtml(l.local || '')}</td>
+                    <td class="sb-col-colab">${escapeHtml(l.colaborador || '')}${ehEu ? ' <span class="sb-pill-badge">Você</span>' : ''}</td>
+                    <td class="sb-col-emp">${escapeHtml(l.empresa || '')}</td>
+                    <td class="sb-col-tel">${escapeHtml(l.telefone || '')}</td>
+                    ${tdsDias}
+                    <td class="sb-col-total">${totalColab}</td>
+                    ${acoesTd}
+                </tr>
+            `;
+        });
+    }
+
+    html += `</tbody><tfoot class="sb-tfoot"><tr><td colspan="4" style="text-align:right;">TOTAL HORAS / DIA:</td>`;
+    diasMeta.forEach(dm => {
+        html += `<td>${totaisPorDia[dm.diaPad] || 0}</td>`;
+    });
+    html += `<td>${totalGeral}</td>${adminAtivo ? '<td></td>' : ''}</tr></tfoot>`;
+
+    tabela.innerHTML = html;
+}
+
+function abrirPopoverCelulaSobreaviso(event, linhaId, diaPad) {
+    if (!isAdmin()) return;
+    event.stopPropagation();
+    sbCelulaAtiva = { linhaId, diaPad };
+    const pop = document.getElementById('sbCellPopover');
+    if (!pop) return;
+    pop.style.display = 'flex';
+    const left = Math.min(window.innerWidth - 210, Math.max(8, event.clientX));
+    const top = Math.min(window.innerHeight - 250, Math.max(8, event.clientY + 6));
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+}
+
+document.addEventListener('click', (e) => {
+    const pop = document.getElementById('sbCellPopover');
+    if (pop && pop.style.display === 'flex' && !pop.contains(e.target)) {
+        pop.style.display = 'none';
+    }
+});
+
+function definirValorCelulaSobreaviso(valor) {
+    if (!isAdmin() || !sbCelulaAtiva) return;
+    const mesKey = obterMesKeySobreaviso();
+    const linhas = obterLinhasSobreavisoMes(mesKey);
+    const alvo = linhas.find(l => String(l.id) === String(sbCelulaAtiva.linhaId));
+    if (alvo) {
+        if (!alvo.dias || typeof alvo.dias !== 'object') alvo.dias = {};
+        if (valor === '') delete alvo.dias[sbCelulaAtiva.diaPad];
+        else alvo.dias[sbCelulaAtiva.diaPad] = (valor === 'FÉRIAS') ? 'FÉRIAS' : Number(valor);
+        sbAlteracoesPendentes = true;
+    }
+    const pop = document.getElementById('sbCellPopover');
+    if (pop) pop.style.display = 'none';
+    renderSobreaviso();
+}
+
+function preencherFdsSobreaviso() {
+    if (!isAdmin() || !sbCelulaAtiva) return;
+    const mesKey = obterMesKeySobreaviso();
+    const [anoStr, mesStr] = mesKey.split('-');
+    const qtdDias = new Date(Number(anoStr), Number(mesStr), 0).getDate();
+    const linhas = obterLinhasSobreavisoMes(mesKey);
+    const alvo = linhas.find(l => String(l.id) === String(sbCelulaAtiva.linhaId));
+    if (alvo) {
+        if (!alvo.dias || typeof alvo.dias !== 'object') alvo.dias = {};
+        const d0 = Number(sbCelulaAtiva.diaPad);
+        const sequencia = [5, 24, 19];
+        for (let k = 0; k < sequencia.length; k++) {
+            const diaNum = d0 + k;
+            if (diaNum <= qtdDias) {
+                alvo.dias[String(diaNum).padStart(2, '0')] = sequencia[k];
+            }
+        }
+        sbAlteracoesPendentes = true;
+    }
+    const pop = document.getElementById('sbCellPopover');
+    if (pop) pop.style.display = 'none';
+    renderSobreaviso();
+}
+
+function duplicarMesAnteriorSobreaviso() {
+    if (!isAdmin()) return alert('Apenas administradores podem duplicar a escala.');
+    const mesKey = obterMesKeySobreaviso();
+    const [anoStr, mesStr] = mesKey.split('-');
+    let anoAnt = Number(anoStr);
+    let mesAnt = Number(mesStr) - 1;
+    if (mesAnt < 1) { mesAnt = 12; anoAnt -= 1; }
+    const mesAntKey = `${anoAnt}-${String(mesAnt).padStart(2, '0')}`;
+    const origem = obterLinhasSobreavisoMes(mesAntKey);
+    if (!origem.length) {
+        return alert(`Não há escala cadastrada em ${String(mesAnt).padStart(2, '0')}/${anoAnt} para duplicar.`);
+    }
+    const atuais = obterLinhasSobreavisoMes(mesKey);
+    if (atuais.length > 0 && !confirm(`Já existem ${atuais.length} linha(s) em ${mesStr}/${anoStr}. Deseja substituir pela equipe de ${String(mesAnt).padStart(2, '0')}/${anoAnt}?`)) {
+        return;
+    }
+    dbCache.sobreaviso[mesKey] = origem.map((l, idx) => ({
+        id: `sb_${Date.now()}_${idx}`,
+        local: l.local || '',
+        colaborador: l.colaborador || '',
+        empresa: l.empresa || 'ETB',
+        telefone: l.telefone || '',
+        dias: {}
+    }));
+    sbAlteracoesPendentes = true;
+    renderSobreaviso();
+}
+
+function importarEquipePadraoSobreaviso() {
+    if (!isAdmin()) return;
+    const mesKey = obterMesKeySobreaviso();
+    const atuais = obterLinhasSobreavisoMes(mesKey);
+    if (atuais.length > 0 && !confirm(`Já existem ${atuais.length} linha(s) neste mês. Deseja substituir pela equipe padrão da Regional Nordeste?`)) {
+        return;
+    }
+    dbCache.sobreaviso[mesKey] = EQUIPE_PADRAO_SOBREAVISO.map((item, idx) => ({
+        id: `sb_${Date.now()}_${idx}`,
+        local: item.local,
+        colaborador: item.colaborador,
+        empresa: item.empresa,
+        telefone: item.telefone,
+        dias: {}
+    }));
+    sbAlteracoesPendentes = true;
+    renderSobreaviso();
+}
+
+function abrirModalLinhaSobreaviso(linhaId = null) {
+    if (!isAdmin()) return;
+    sbEditandoLinhaId = linhaId;
+    const mesKey = obterMesKeySobreaviso();
+    const linhas = obterLinhasSobreavisoMes(mesKey);
+    const alvo = linhaId ? linhas.find(l => String(l.id) === String(linhaId)) : null;
+
+    document.getElementById('tituloModalLinhaSb').innerText = alvo ? '✏️ Editar Colaborador na Escala' : '➕ Adicionar Colaborador na Escala';
+    document.getElementById('sbInputLocal').value = alvo ? (alvo.local || '') : '';
+    document.getElementById('sbInputColab').value = alvo ? (alvo.colaborador || '') : '';
+    document.getElementById('sbInputEmpresa').value = alvo ? (alvo.empresa || 'ETB') : 'ETB';
+    document.getElementById('sbInputTelefone').value = alvo ? (alvo.telefone || '') : '';
+    document.getElementById('modalLinhaSobreaviso').classList.add('open');
+}
+
+function fecharModalLinhaSobreaviso() {
+    document.getElementById('modalLinhaSobreaviso').classList.remove('open');
+    sbEditandoLinhaId = null;
+}
+
+function confirmarLinhaSobreaviso() {
+    if (!isAdmin()) return;
+    const local = document.getElementById('sbInputLocal').value.trim();
+    const colaborador = document.getElementById('sbInputColab').value.trim();
+    const empresa = document.getElementById('sbInputEmpresa').value;
+    const telefone = document.getElementById('sbInputTelefone').value.trim();
+    if (!local || !colaborador) return alert('Informe o Local/Instalação e o Colaborador.');
+
+    const mesKey = obterMesKeySobreaviso();
+    const linhas = obterLinhasSobreavisoMes(mesKey);
+    if (sbEditandoLinhaId) {
+        const alvo = linhas.find(l => String(l.id) === String(sbEditandoLinhaId));
+        if (alvo) {
+            alvo.local = local;
+            alvo.colaborador = colaborador;
+            alvo.empresa = empresa;
+            alvo.telefone = telefone;
+        }
+    } else {
+        linhas.push({
+            id: `sb_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+            local,
+            colaborador,
+            empresa,
+            telefone,
+            dias: {}
+        });
+    }
+    sbAlteracoesPendentes = true;
+    fecharModalLinhaSobreaviso();
+    renderSobreaviso();
+}
+
+function removerLinhaSobreaviso(linhaId) {
+    if (!isAdmin()) return;
+    if (!confirm('Remover este colaborador da escala deste mês?')) return;
+    const mesKey = obterMesKeySobreaviso();
+    dbCache.sobreaviso[mesKey] = obterLinhasSobreavisoMes(mesKey).filter(l => String(l.id) !== String(linhaId));
+    sbAlteracoesPendentes = true;
+    renderSobreaviso();
+}
+
+async function salvarEscalaSobreavisoMes() {
+    if (!isAdmin()) return alert('Apenas administradores podem salvar a escala.');
+    const mesKey = obterMesKeySobreaviso();
+    const linhas = obterLinhasSobreavisoMes(mesKey);
+
+    desabilitarBotoes(true);
+    try {
+        const r = await apiFetch('/api/sobreaviso/salvar', {
+            metodo: 'POST',
+            corpo: { mesKey, linhas }
+        });
+        if (r.status === 401) {
+            encerrarSessao('Sessão expirada. Faça login novamente.');
+            return;
+        }
+        if (!r.ok) {
+            alert((r.dados && r.dados.erro) ? r.dados.erro : 'Não foi possível salvar a escala.');
+            return;
+        }
+        if (r.dados && r.dados.sobreaviso) dbCache.sobreaviso = r.dados.sobreaviso;
+        if (r.dados && Array.isArray(r.dados.logs)) dbCache.logs = r.dados.logs;
+        sbAlteracoesPendentes = false;
+        renderSobreaviso();
+        alert(`Escala de sobreaviso de ${mesKey} salva no banco de dados com sucesso!`);
+    } catch (e) {
+        console.error('Erro ao salvar sobreaviso:', e);
+        alert('Erro de conexão ao salvar a escala de sobreaviso.');
+    } finally {
+        desabilitarBotoes(false);
+    }
+}
+
+function exportarSobreavisoCSV() {
+    const mesKey = obterMesKeySobreaviso();
+    const [anoStr, mesStr] = mesKey.split('-');
+    const qtdDias = new Date(Number(anoStr), Number(mesStr), 0).getDate();
+    const linhas = obterLinhasSobreavisoMes(mesKey);
+    if (!linhas.length) return alert('Não há registros para exportar neste mês.');
+
+    const cabDias = [];
+    for (let d = 1; d <= qtdDias; d++) cabDias.push(`${String(d).padStart(2, '0')}/${mesStr}/${anoStr}`);
+    let csv = `\uFEFFLOCAL;COLABORADOR;EMPRESA;TELEFONE;${cabDias.join(';')};TOTAL HORAS\n`;
+    linhas.forEach(l => {
+        const diasObj = (l.dias && typeof l.dias === 'object') ? l.dias : {};
+        let tot = 0;
+        const vals = [];
+        for (let d = 1; d <= qtdDias; d++) {
+            const v = diasObj[String(d).padStart(2, '0')] ?? '';
+            const n = Number(v);
+            if (v !== '' && v !== 'FÉRIAS' && Number.isFinite(n)) tot += n;
+            vals.push(`"${String(v).replace(/"/g, '""')}"`);
+        }
+        const loc = `"${String(l.local || '').replace(/\n/g, ' / ').replace(/"/g, '""')}"`;
+        const col = `"${String(l.colaborador || '').replace(/"/g, '""')}"`;
+        const emp = `"${String(l.empresa || '').replace(/"/g, '""')}"`;
+        const tel = `"${String(l.telefone || '').replace(/"/g, '""')}"`;
+        csv += `${loc};${col};${emp};${tel};${vals.join(';')};${tot}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `escala_sobreaviso_${mesKey}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 (function init() {
