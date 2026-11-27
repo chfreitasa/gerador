@@ -3910,12 +3910,20 @@ function renderListaUsuariosModal() {
 // ==========================================
 
 function popularAnos() {
-    const selectAno = document.getElementById('anoSelecionado');
-    if (!selectAno) return;
     const anoAtual = new Date().getFullYear();
+    const anoMin = Math.min(2025, anoAtual - 1);
+    const anoMax = Math.max(2035, anoAtual + 10);
     const anos = [];
-    for (let a = anoAtual - 1; a <= anoAtual + 2; a++) anos.push(a);
-    selectAno.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+    for (let a = anoMin; a <= anoMax; a++) anos.push(a);
+
+    const selectAno = document.getElementById('anoSelecionado');
+    if (selectAno) {
+        selectAno.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+    }
+    const selectSbAno = document.getElementById('sbAno');
+    if (selectSbAno) {
+        selectSbAno.innerHTML = anos.map(a => `<option value="${a}" ${a === anoAtual ? 'selected' : ''}>${a}</option>`).join('');
+    }
 }
 
 function dataHojeISO() {
