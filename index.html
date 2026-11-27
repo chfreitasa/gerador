@@ -4487,6 +4487,82 @@ function exportarSobreavisoCSV() {
 
 window.addEventListener('hashchange', navigate);
 
+// ==========================================
+// SINCRONIZAÇÃO AUTOMÁTICA EM SEGUNDO PLANO
+// ==========================================
+let _syncIndexEmAndamento = false;
+let _ultimaAssinaturaDb = '';
+
+async function sincronizarIndexEmSegundoPlano(forcar = false) {
+    if (_syncIndexEmAndamento || !dbCarregado || !isLoggedIn() || !configOk() || tokenExpirado() || bloqueioTrocaSenhaAtivo) return;
+    if (!forcar && document.visibilityState !== 'visible') return;
+
+    _syncIndexEmAndamento = true;
+    try {
+        const r = await apiFetch('/api/db');
+        if (r.status === 401) {
+            encerrarSessao('Sessão expirada ou inválida. Faça login novamente.');
+            return;
+        }
+        if (!r.ok) return;
+
+        const rec = (r.dados && r.dados.record) ? r.dados.record : r.dados;
+        const novoDb = {
+            ferias: (rec && Array.isArray(rec.ferias)) ? rec.ferias.map(normalizarRegistro) : [],
+            logs: (rec && Array.isArray(rec.logs)) ? rec.logs : [],
+            usuarios: (rec && rec.usuarios && typeof rec.usuarios === 'object') ? rec.usuarios : {},
+            solicitacoes: (rec && Array.isArray(rec.solicitacoes)) ? rec.solicitacoes : [],
+            config: (rec && rec.config && typeof rec.config === 'object') ? rec.config : { feriasBloqueadas: false },
+            sobreaviso: (rec && rec.sobreaviso && typeof rec.sobreaviso === 'object') ? rec.sobreaviso : {}
+        };
+
+        const assinatura = JSON.stringify(novoDb);
+        if (assinatura === _ultimaAssinaturaDb) return;
+        _ultimaAssinaturaDb = assinatura;
+
+        // Preserva edição pendente do mês ativo no Sobreaviso, se houver
+        const mesAtivoSb = obterMesKeySobreaviso();
+        const linhasLocaisSb = (typeof sbAlteracoesPendentes !== 'undefined' && sbAlteracoesPendentes && dbCache.sobreaviso && Array.isArray(dbCache.sobreaviso[mesAtivoSb]))
+            ? dbCache.sobreaviso[mesAtivoSb]
+            : null;
+
+        dbCache = novoDb;
+        if (linhasLocaisSb) {
+            if (!dbCache.sobreaviso || typeof dbCache.sobreaviso !== 'object') dbCache.sobreaviso = {};
+            dbCache.sobreaviso[mesAtivoSb] = linhasLocaisSb;
+        }
+
+        const meuLogin = obterLoginAtual();
+        if (dbCache.usuarios[meuLogin]) {
+            sessionStorage.setItem('etb_role', dbCache.usuarios[meuLogin].role);
+            sessionStorage.setItem('etb_operador', dbCache.usuarios[meuLogin].label || meuLogin);
+        }
+
+        atualizarAlertaSobreavisoPortal();
+        if (document.getElementById('page-ferias')?.classList.contains('active')) {
+            renderFerias();
+        }
+        if (document.getElementById('page-sobreaviso')?.classList.contains('active')) {
+            renderSobreaviso();
+        }
+        if (document.getElementById('modalUsuarios')?.classList.contains('open')) {
+            renderListaUsuariosModal();
+        }
+        if (document.getElementById('modalAuditoria')?.classList.contains('open')) {
+            abrirModalAuditoria();
+        }
+    } catch (_) {
+    } finally {
+        _syncIndexEmAndamento = false;
+    }
+}
+
+setInterval(() => sincronizarIndexEmSegundoPlano(false), 12000);
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') sincronizarIndexEmSegundoPlano(true);
+});
+window.addEventListener('focus', () => sincronizarIndexEmSegundoPlano(true));
+
 </script>
 </body>
 </html>

@@ -1770,6 +1770,70 @@
             renderRepositoryList();
         }
 
+        let _syncRelEmAndamento = false;
+        let _ultimaAssinaturaRel = '';
+
+        async function sincronizarRepositorioEmSegundoPlano(forcar = false) {
+            if (_syncRelEmAndamento || !apiConfigurada()) return;
+            if (!forcar && document.visibilityState !== 'visible') return;
+            if (!obterTokenSessao()) return;
+
+            _syncRelEmAndamento = true;
+            try {
+                const resp = await fetch(API_URL + '/api/relatorios', { headers: cabecalhosAuth() });
+                if (!resp.ok) return;
+                const dados = await resp.json().catch(() => null);
+                if (!dados || !dados.relatorios) return;
+
+                const assinatura = JSON.stringify({ r: dados.relatorios, u: dados.usuarios || [] });
+                if (assinatura === _ultimaAssinaturaRel) return;
+                _ultimaAssinaturaRel = assinatura;
+
+                const dadosRel = dados.relatorios;
+                listaServidor = (Array.isArray(dadosRel.lista) ? dadosRel.lista : []).slice().sort(ordenarPorAtualizacao);
+                yearCountersMap = Object.assign({}, (dadosRel.contadores && typeof dadosRel.contadores === 'object') ? dadosRel.contadores : {});
+                if (Array.isArray(dados.usuarios)) {
+                    listaUsuariosSistema = dados.usuarios.filter(u => u && u.login && u.label);
+                    popularSelectUsuariosRelatorios();
+                }
+
+                salvarCacheServidor();
+                definirStatusBanco(true, 'sincronizado com a equipe');
+                remontarRepositorio();
+
+                if (!currentReport.id && !currentReport.manualSeqOverride) {
+                    const novoSeq = getNextAvailableSeq(currentReport.docType, currentReport.year);
+                    if (novoSeq !== currentReport.seqNumber) {
+                        currentReport.seqNumber = novoSeq;
+                        syncCodeDisplaysOnly();
+                        updateEditingModeBanner();
+                    }
+                }
+
+                updateNextAvailableNumberUI();
+                updateRepoBadgeCount();
+                atualizarNotificacoesRevisao();
+
+                const repoModal = document.getElementById('repository-modal');
+                if (repoModal && !repoModal.classList.contains('hidden')) {
+                    renderRepositoryList();
+                }
+                const revModal = document.getElementById('review-notifications-modal');
+                if (revModal && !revModal.classList.contains('hidden')) {
+                    renderReviewNotificationsModal();
+                }
+            } catch (_) {
+            } finally {
+                _syncRelEmAndamento = false;
+            }
+        }
+
+        setInterval(() => sincronizarRepositorioEmSegundoPlano(false), 12000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') sincronizarRepositorioEmSegundoPlano(true);
+        });
+        window.addEventListener('focus', () => sincronizarRepositorioEmSegundoPlano(true));
+
         // Grava/atualiza 1 documento no banco da equipe (POST /api/relatorios/salvar).
         // O servidor valida, reserva o código único e devolve o documento oficial.
         async function salvarNoBanco(docCompleto) {
